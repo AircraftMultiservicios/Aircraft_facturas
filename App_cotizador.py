@@ -5,8 +5,6 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 from reportlab.platypus import Table, TableStyle
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 
 # --- CONFIGURACIÓN DE LA EMPRESA ---
 NOMBRE_EMPRESA = "AIRCRAFT MULTISERVICIOS"
@@ -40,24 +38,25 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
     ruta_logo = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.png")
     try:
         if os.path.exists(ruta_logo):
-            c.drawImage(ruta_logo, 40, height - 80, width=60, preserveAspectRatio=True)
-    except:
-        pass
+            # Ajuste exacto del logo: x=40, y=height-80, tamaño 60x60
+            c.drawImage(ruta_logo, 40, height - 80, width=60, height=60, preserveAspectRatio=True, mask='auto')
+    except Exception as e:
+        print(f"Error logo: {e}")
 
     # Datos Empresa
     c.setFont("Helvetica-Bold", 16)
     c.setFillColor(colors.HexColor("#1e50b4")) # Azul
-    c.drawString(40, height - 110, "AIRCRAFT")
-    c.drawString(40, height - 125, "MULTISERVICIOS")
+    c.drawString(110, height - 50, "AIRCRAFT")
+    c.drawString(110, height - 65, "MULTISERVICIOS")
     
     c.setFont("Helvetica", 7)
     c.setFillColor(colors.black)
-    c.drawString(40, height - 135, SLOGAN)
+    c.drawString(110, height - 75, SLOGAN)
     c.setFont("Helvetica-Bold", 7)
-    c.drawString(40, height - 145, f"NIT: {NIT}")
+    c.drawString(110, height - 85, f"NIT: {NIT}")
     c.setFont("Helvetica", 7)
-    c.drawString(40, height - 153, f"Telefono: {TELEFONO}")
-    c.drawString(40, height - 161, f"Correo: {CORREO}")
+    c.drawString(110, height - 93, f"Telefono: {TELEFONO}")
+    c.drawString(110, height - 101, f"Correo: {CORREO}")
 
     # --- RECUADRO DERECHO (COTIZACIÓN) ---
     c.setStrokeColor(colors.HexColor("#cccccc"))
@@ -88,17 +87,12 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
     c.drawString(40, height - 190, "DETALLE DEL PRESUPUESTO")
 
     # --- TABLA DE ITEMS CON REPORTLAB ---
-    # Encabezados
     data = [["ITEM", "DESCRIPCION DEL MATERIAL / SERVICIO", "CANT.", "UNIDAD", "UNITARIO", "TOTAL"]]
     
-    # Filas
     for i, item in enumerate(items, start=1):
-        # Limpiamos acentos
         texto_limpio = item['descripcion'].replace('á','a').replace('é','e').replace('í','i').replace('ó','o').replace('ú','u').replace('ñ','n')
         lineas = [l.strip().lstrip('-').strip() for l in texto_limpio.split('\n') if l.strip()]
         
-        # ReportLab acepta saltos de línea usando <br/> en formato Paragraph
-        # Pero para mantenerlo simple, unimos con saltos de línea normales
         texto_celda = "\n".join([f"- {l}" for l in lineas])
         
         precio_str = f"${item['precio']:,.0f}".replace(",", ".")
@@ -113,11 +107,8 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
             total_str
         ])
 
-    # Crear la tabla
-    # Anchos: ITEM(30), DESCRIPCION(260), CANT(40), UNIDAD(50), UNITARIO(70), TOTAL(70)
     tabla = Table(data, colWidths=[35, 250, 40, 55, 65, 70])
     
-    # Estilos de la tabla
     estilo_tabla = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#1e50b4")),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
@@ -129,35 +120,34 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
         
         ('BACKGROUND', (0, 1), (-1, -1), colors.white),
         ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
-        ('FONTNAME', (0, 1), (0, -1), 'Helvetica'), # Num item
-        ('FONTNAME', (1, 1), (1, -1), 'Helvetica'), # Descripcion
-        ('FONTNAME', (2, 1), (-1, -1), 'Helvetica'), # Resto
+        ('FONTNAME', (0, 1), (0, -1), 'Helvetica'),
+        ('FONTNAME', (1, 1), (1, -1), 'Helvetica'),
+        ('FONTNAME', (2, 1), (-1, -1), 'Helvetica'),
         
-        ('ALIGN', (0, 1), (0, -1), 'CENTER'), # Centrar items
-        ('ALIGN', (1, 1), (1, -1), 'LEFT'),   # Alinear izq descripcion
-        ('ALIGN', (2, 1), (-1, -1), 'CENTER'),# Centrar cant, unidad
-        ('ALIGN', (4, 1), (-1, -1), 'RIGHT'), # Alinear der precios
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), # Centrado vertical
+        ('ALIGN', (0, 1), (0, -1), 'CENTER'),
+        ('ALIGN', (1, 1), (1, -1), 'LEFT'),
+        ('ALIGN', (2, 1), (-1, -1), 'CENTER'),
+        ('ALIGN', (4, 1), (-1, -1), 'RIGHT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         
         ('FONTSIZE', (0, 1), (-1, -1), 7),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#cccccc")),
         ('TOPPADDING', (0, 1), (-1, -1), 6),
         ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
-        ('LEFTPADDING', (1, 1), (1, -1), 10), # Margen para la descripción
+        ('LEFTPADDING', (1, 1), (1, -1), 10),
     ])
     tabla.setStyle(estilo_tabla)
     
-    # Dibujar la tabla en el PDF
     ancho_tabla, alto_tabla = tabla.wrapOn(c, width, height)
-    tabla.drawOn(c, 40, height - 210 - alto_tabla) # Ajuste de posición
+    tabla.drawOn(c, 40, height - 210 - alto_tabla)
 
     # --- TOTALES ---
-    # Calculamos dónde quedó la tabla para poner los totales abajo
     y_totales = height - 220 - alto_tabla 
     
-    # Recuadro de totales a la derecha
+    # Dibujar líneas y textos alineados
     c.setStrokeColor(colors.HexColor("#cccccc"))
     c.setFont("Helvetica", 8)
+    c.setFillColor(colors.black)
     
     # Subtotal
     c.drawString(width - 200, y_totales - 10, "Subtotal:")
@@ -169,7 +159,7 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
     c.drawRightString(width - 50, y_totales - 25, "$0")
     c.line(width - 210, y_totales - 30, width - 40, y_totales - 30)
     
-    # Total
+    # Total Neto
     c.setFont("Helvetica-Bold", 8)
     c.setFillColor(colors.HexColor("#1e50b4"))
     c.drawString(width - 200, y_totales - 40, "Total Neto:")
@@ -189,7 +179,6 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
     c.setFont("Helvetica-Bold", 9)
     c.drawString(50, 145, "CONDICIONES COMERCIALES")
     
-    c.setFont("Helvetica", 7)
     condiciones = [
         ("- Forma de Pago:", "Anticipo establecido para la compra de materiales y saldo restante contra entrega a satisfaccion de los trabajos realizados."),
         ("- Tiempo de Ejecucion:", "A convenir y programar de manera conjunta tras la confirmacion formal del servicio."),
@@ -197,20 +186,21 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
         ("- Exclusiones:", "No se contemplan obras civiles mayores, resanes de pintura profundos ni acometidas electricas externas al alcance mencionado.")
     ]
     
-    y_texto = 135
+    y_texto = 130
     for titulo, texto in condiciones:
         c.setFont("Helvetica-Bold", 7)
         c.drawString(50, y_texto, titulo)
+        
         c.setFont("Helvetica", 7)
-        c.drawString(120, y_texto, texto) # Texto alineado a la derecha del título
+        # Aquí movemos el texto a la derecha (x=145) para que no choque con el título
+        c.drawString(145, y_texto, texto) 
         y_texto -= 12
 
     c.save()
     
-    # Leer el PDF generado y devolverlo como bytes
     with open(ruta_pdf, "rb") as f:
         pdf_bytes = f.read()
-    os.remove(ruta_pdf) # Borrar el archivo temporal
+    os.remove(ruta_pdf)
     
     return pdf_bytes
 
@@ -273,7 +263,6 @@ if st.session_state.items_cotizacion:
         if st.button("Generar Cotización PDF", type="primary"):
             numero_actual = obtener_siguiente_numero()
             
-            # Generar PDF con ReportLab
             pdf_bytes = generar_pdf_cotizacion(st.session_state.items_cotizacion, total_general, numero_actual)
             incrementar_contador(numero_actual)
             
