@@ -110,35 +110,35 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
     pdf.set_font("Arial", "", 7)
     
     for i, item in enumerate(items, start=1):
-        # 1. Limpiamos el texto
+        # 1. Limpiamos el texto de tildes para evitar errores
         texto_limpio = item['descripcion'].replace('á','a').replace('é','e').replace('í','i').replace('ó','o').replace('ú','u').replace('ñ','n')
         
-        # Limpiamos cualquier guion que se haya escrito por error al inicio de la línea
+        # 2. Separamos por líneas y limpiamos guiones extra
         lineas = [l.strip().lstrip('-').strip() for l in texto_limpio.split('\n') if l.strip()]
         
-        # 2. Calculamos la altura de la fila según cuántas líneas de texto haya
-        altura_fila = max(10, (len(lineas) * 4) + 2) 
+        # 3. AHORA CALCULAMOS EL ALTO REAL: 5mm por cada material + margen
+        altura_fila = max(10, (len(lineas) * 5) + 2) 
         
-        # 3. Guardamos la posición inicial de la fila
+        # Guardamos coordenadas iniciales exactas
         x_inicial = 12
         y_inicial = pdf.get_y()
 
-        # 4. Escribimos el número de la fila (Bien centrado)
+        # 4. Escribimos el número de la fila (centrado verticalmente usando altura_fila)
         pdf.set_xy(x_inicial, y_inicial)
         pdf.cell(10, altura_fila, str(i), border=1, align="C")
         
-        # 5. Escribimos el recuadro de la descripción vacío
+        # 5. Escribimos el recuadro de la descripción vacío (con su borde)
         pdf.cell(88, altura_fila, "", border=1)
         
-        # 6. Nos posicionamos DENTRO de la celda de descripción para escribir el texto
+        # 6. Nos movemos DENTRO del recuadro para escribir la lista
         pdf.set_xy(x_inicial + 12, y_inicial + 2)
         
-        # Escribimos cada línea con su viñeta perfectamente alineada
         for linea in lineas:
-            pdf.cell(4, 4, "-", align="C") 
-            pdf.cell(0, 4, linea, new_x="LMARGIN", new_y="NEXT")
+            pdf.cell(4, 5, "-", align="C") 
+            # Escribimos la línea. Al ponerle new_y="NEXT", baja automáticamente 5mm
+            pdf.cell(0, 5, linea, new_x="LMARGIN", new_y="NEXT")
                 
-        # 7. Volvemos a la posición vertical de la fila para escribir las demás columnas
+        # 7. Volvemos a la posición Y inicial de la fila para escribir las otras columnas
         pdf.set_xy(x_inicial + 98, y_inicial)
         pdf.cell(12, altura_fila, str(item['cantidad']), border=1, align="C")
         pdf.cell(18, altura_fila, item['unidad'], border=1, align="C")
@@ -207,7 +207,6 @@ st.write("### Añadir Material o Servicio")
 with st.form("form_item", clear_on_submit=True):
     col1, col2, col3, col4 = st.columns([4, 1, 1, 2])
     with col1:
-        # Instrucción clara: solo dar enter
         desc = st.text_area("Descripción (Dale 'Enter' para separar cada ítem)", height=100, placeholder="Rollo de tubería de cobre 1/2\nRollo de tubería de cobre 1/8")
     with col2:
         cant = st.number_input("Cant.", min_value=1, step=1)
