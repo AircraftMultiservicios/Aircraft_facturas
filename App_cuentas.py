@@ -26,7 +26,6 @@ def incrementar_contador(numero):
         f.write(str(numero + 1))
 
 def numero_a_letras(numero):
-    # Convierte el número a letras en español
     letras = num2words(numero, lang='es').capitalize()
     return f"{letras} pesos M/CTE"
 
@@ -35,11 +34,19 @@ def generar_pdf(datos, numero_cuenta):
     pdf = FPDF()
     pdf.add_page()
     
-    # Intentar poner el logo
+    # --- LOGO ---
+    # Busca el logo en la misma carpeta del script
+    ruta_logo = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.png")
+    
     try:
-        pdf.image("logo.jpg", x=160, y=10, w=35) # Esquina superior derecha
-    except:
-        pass # Si no encuentra el logo, lo ignora
+        # Si el archivo existe, lo pone en la esquina superior derecha
+        if os.path.exists(ruta_logo):
+            pdf.image(ruta_logo, x=160, y=10, w=35)
+        else:
+            # Si no lo encuentra, avisa en la consola (no rompe la app)
+            print("ADVERTENCIA: No se encontró el archivo logo.png en la carpeta.")
+    except Exception as e:
+        print(f"Error al cargar el logo: {e}")
 
     # Título
     pdf.set_font("Arial", "B", 16)
@@ -51,7 +58,6 @@ def generar_pdf(datos, numero_cuenta):
     
     # Fecha
     fecha_actual = datetime.now().strftime("%d de %B de %Y")
-    # Traducir mes a español simple
     meses = {"January": "enero", "February": "febrero", "March": "marzo", "April": "abril", "May": "mayo", "June": "junio", "July": "julio", "August": "agosto", "September": "septiembre", "October": "octubre", "November": "noviembre", "December": "diciembre"}
     for k, v in meses.items():
         fecha_actual = fecha_actual.replace(k, v)
@@ -104,6 +110,7 @@ def generar_pdf(datos, numero_cuenta):
     pdf.set_font("Arial", "", 10)
     pdf.cell(0, 5, f"C.C. {CEDULA_COBRADOR}", new_x="LMARGIN", new_y="NEXT")
 
+    # Retornar el PDF como bytes (forma actualizada)
     return bytes(pdf.output())
 
 # --- INTERFAZ GRÁFICA (STREAMLIT) ---
@@ -112,7 +119,6 @@ st.set_page_config(page_title="Cuentas de Cobro - AIRCRAFT", page_icon="🧾")
 st.title("🧾 Generador de Cuentas de Cobro")
 st.subheader("AIRCRAFT MULTISERVICIOS")
 
-# Formulario
 with st.form("formulario_cuenta"):
     st.write("Datos del Cliente")
     cliente_nombre = st.text_input("Nombre del Cliente")
@@ -147,10 +153,9 @@ if submit:
         
         st.success(f"✅ Cuenta de cobro N° {numero_actual:03d} generada con éxito.")
         
-        # Botón de descarga
         st.download_button(
             label="⬇️ Descargar PDF",
             data=pdf_bytes,
             file_name=f"Cuenta_Cobro_{numero_actual:03d}.pdf",
             mime="application/pdf"
-        )
+    )
