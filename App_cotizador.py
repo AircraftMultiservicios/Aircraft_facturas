@@ -7,6 +7,7 @@ from reportlab.lib import colors
 from reportlab.platypus import Table, TableStyle, Paragraph
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.enums import TA_LEFT
+import textwrap
 
 # --- CONFIGURACIÓN DE LA EMPRESA ---
 NOMBRE_EMPRESA = "AIRCRAFT MULTISERVICIOS"
@@ -36,30 +37,32 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
     c = canvas.Canvas(ruta_pdf, pagesize=letter)
     width, height = letter
 
-    # --- ENCABEZADO IZQUIERDO (Logo y Datos) ---
+    # --- ENCABEZADO IZQUIERDO (Alineación Matemática Perfecta) ---
+    # Definimos el centro vertical del bloque del encabezado
+    y_centro = height - 75
+    
     ruta_logo = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.png")
     try:
         if os.path.exists(ruta_logo):
-            # AJUSTE: Logo un poco más grande (55x55) y bajado a height - 85
-            # para que su centro coincida con el centro del bloque de texto
-            c.drawImage(ruta_logo, 40, height - 85, width=55, height=55, preserveAspectRatio=True, mask='auto')
+            # Logo de 50x50. Lo centramos exactamente en y_centro
+            c.drawImage(ruta_logo, 40, y_centro - 25, width=50, height=50, preserveAspectRatio=True, mask='auto')
     except Exception as e:
         print(f"Error logo: {e}")
 
-    # Datos Empresa (Ajustados en altura para alinear con el nuevo logo)
+    # Datos Empresa (El bloque completo se centra en y_centro)
     c.setFont("Helvetica-Bold", 16)
     c.setFillColor(colors.HexColor("#1e50b4"))
-    c.drawString(115, height - 50, "AIRCRAFT")
-    c.drawString(115, height - 65, "MULTISERVICIOS")
+    c.drawString(115, y_centro + 15, "AIRCRAFT")
+    c.drawString(115, y_centro, "MULTISERVICIOS")
     
-    c.setFont("Helvetica", 8) 
+    c.setFont("Helvetica", 7.5) 
     c.setFillColor(colors.black)
-    c.drawString(115, height - 75, SLOGAN)
-    c.setFont("Helvetica-Bold", 8)
-    c.drawString(115, height - 85, f"NIT: {NIT}")
-    c.setFont("Helvetica", 8)
-    c.drawString(115, height - 93, f"Telefono: {TELEFONO}")
-    c.drawString(115, height - 101, f"Correo: {CORREO}")
+    c.drawString(115, y_centro - 10, SLOGAN)
+    c.setFont("Helvetica-Bold", 7.5)
+    c.drawString(115, y_centro - 19, f"NIT: {NIT}")
+    c.setFont("Helvetica", 7.5)
+    c.drawString(115, y_centro - 27, f"Telefono: {TELEFONO}")
+    c.drawString(115, y_centro - 35, f"Correo: {CORREO}")
 
     # --- RECUADRO DERECHO (COTIZACIÓN) ---
     c.setStrokeColor(colors.HexColor("#cccccc"))
@@ -87,7 +90,7 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
     # --- TÍTULO TABLA ---
     c.setFont("Helvetica-Bold", 10) 
     c.setFillColor(colors.HexColor("#1e50b4"))
-    c.drawString(40, height - 190, "DETALLE DEL PRESUPUESTO")
+    c.drawString(40, height - 185, "DETALLE DEL PRESUPUESTO")
 
     # --- TABLA DE ITEMS CON REPORTLAB ---
     data = [["ITEM", "DESCRIPCION DEL MATERIAL / SERVICIO", "CANT.", "UNIDAD", "UNITARIO", "TOTAL"]]
@@ -155,10 +158,10 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
     tabla.setStyle(estilo_tabla)
     
     ancho_tabla, alto_tabla = tabla.wrapOn(c, width, height)
-    tabla.drawOn(c, 40, height - 210 - alto_tabla)
+    tabla.drawOn(c, 40, height - 205 - alto_tabla)
 
     # --- TOTALES ---
-    y_totales = height - 220 - alto_tabla 
+    y_totales = height - 215 - alto_tabla 
     
     c.setStrokeColor(colors.HexColor("#cccccc"))
     c.setFont("Helvetica", 9) 
@@ -178,16 +181,17 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
     c.drawRightString(width - 50, y_totales - 42, f"${total_neto:,.0f}".replace(",", "."))
     c.line(width - 210, y_totales - 47, width - 40, y_totales - 47)
 
-    # --- CONDICIONES COMERCIALES ---
+    # --- CONDICIONES COMERCIALES (Con ajuste de línea) ---
+    # Hicimos el recuadro más alto (de 80 a 95)
     c.setFillColor(colors.HexColor("#f5f5f5"))
-    c.rect(40, 80, width - 80, 80, fill=1, stroke=0)
+    c.rect(40, 70, width - 80, 95, fill=1, stroke=0)
     
     c.setFillColor(colors.HexColor("#1e50b4"))
-    c.rect(40, 80, 4, 80, fill=1, stroke=0)
+    c.rect(40, 70, 4, 95, fill=1, stroke=0)
     
     c.setFillColor(colors.black)
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(50, 145, "CONDICIONES COMERCIALES")
+    c.setFont("Helvetica-Bold", 9.5)
+    c.drawString(50, 150, "CONDICIONES COMERCIALES")
     
     condiciones = [
         ("- Forma de Pago:", "Anticipo establecido para la compra de materiales y saldo restante contra entrega a satisfaccion de los trabajos realizados."),
@@ -196,13 +200,27 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
         ("- Exclusiones:", "No se contemplan obras civiles mayores, resanes de pintura profundos ni acometidas electricas externas al alcance mencionado.")
     ]
     
-    y_texto = 130
+    y_texto = 135
     for titulo, texto in condiciones:
-        c.setFont("Helvetica-Bold", 8) 
+        c.setFont("Helvetica-Bold", 7.5) 
         c.drawString(50, y_texto, titulo)
-        c.setFont("Helvetica", 8)
-        c.drawString(145, y_texto, texto) 
-        y_texto -= 12
+        c.setFont("Helvetica", 7.5)
+        
+        # EL TRUCO: Usamos textwrap para que si el texto es muy largo, baje de línea automáticamente
+        # El ancho de 70 caracteres asegura que no se salga del recuadro
+        lineas_texto = textwrap.wrap(texto, width=75)
+        
+        # Escribimos la primera línea a la derecha del título
+        c.drawString(145, y_texto, lineas_texto[0]) 
+        y_texto -= 11
+        
+        # Si hay más líneas, las escribimos debajo, alineadas con la primera
+        for linea_extra in lineas_texto[1:]:
+            c.drawString(145, y_texto, linea_extra)
+            y_texto -= 11
+            
+        # Un pequeño espacio extra entre cada condición
+        y_texto -= 2
 
     c.save()
     
