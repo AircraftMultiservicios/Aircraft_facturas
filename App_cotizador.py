@@ -36,7 +36,7 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
     c = canvas.Canvas(ruta_pdf, pagesize=letter)
     width, height = letter
 
-    # --- ENCABEZADO IZQUIERDO ---
+    # --- ENCABEZADO IZQUIERDO (Logo y Datos) ---
     ruta_logo = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.png")
     try:
         if os.path.exists(ruta_logo):
@@ -44,20 +44,20 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
     except Exception as e:
         print(f"Error logo: {e}")
 
-    # Datos Empresa (Ajustados para centrar con el logo)
+    # Datos Empresa (Ajustados para centrar exactamente con el logo)
     c.setFont("Helvetica-Bold", 16)
     c.setFillColor(colors.HexColor("#1e50b4"))
-    c.drawString(110, height - 55, "AIRCRAFT")
-    c.drawString(110, height - 70, "MULTISERVICIOS")
+    c.drawString(110, height - 60, "AIRCRAFT")
+    c.drawString(110, height - 75, "MULTISERVICIOS")
     
     c.setFont("Helvetica", 7)
     c.setFillColor(colors.black)
-    c.drawString(110, height - 80, SLOGAN)
+    c.drawString(110, height - 85, SLOGAN)
     c.setFont("Helvetica-Bold", 7)
-    c.drawString(110, height - 90, f"NIT: {NIT}")
+    c.drawString(110, height - 95, f"NIT: {NIT}")
     c.setFont("Helvetica", 7)
-    c.drawString(110, height - 98, f"Telefono: {TELEFONO}")
-    c.drawString(110, height - 106, f"Correo: {CORREO}")
+    c.drawString(110, height - 103, f"Telefono: {TELEFONO}")
+    c.drawString(110, height - 111, f"Correo: {CORREO}")
 
     # --- RECUADRO DERECHO (COTIZACIÓN) ---
     c.setStrokeColor(colors.HexColor("#cccccc"))
@@ -90,7 +90,6 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
     # --- TABLA DE ITEMS CON REPORTLAB ---
     data = [["ITEM", "DESCRIPCION DEL MATERIAL / SERVICIO", "CANT.", "UNIDAD", "UNITARIO", "TOTAL"]]
     
-    # Estilo para el texto dentro de la tabla (que permita negritas y viñetas)
     estilo_celda = ParagraphStyle(
         name='Normal',
         fontName='Helvetica',
@@ -103,13 +102,11 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
         texto_limpio = item['descripcion'].replace('á','a').replace('é','e').replace('í','i').replace('ó','o').replace('ú','u').replace('ñ','n')
         lineas = [l.strip().lstrip('-').strip() for l in texto_limpio.split('\n') if l.strip()]
         
-        # Armamos el texto con el título en negrita y las viñetas debajo
         titulo = item.get('tipo_servicio', 'Materiales')
         texto_celda = f"<b>{titulo}</b><br/>"
         for l in lineas:
             texto_celda += f"- {l}<br/>"
             
-        # Usamos Paragraph para que ReportLab entienda el HTML (negritas y saltos)
         celda_parrafo = Paragraph(texto_celda, estilo_celda)
         
         precio_str = f"${item['precio']:,.0f}".replace(",", ".")
@@ -117,7 +114,7 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
         
         data.append([
             str(i), 
-            celda_parrafo, # Aquí va el texto con formato
+            celda_parrafo, 
             str(item['cantidad']), 
             item['unidad'], 
             precio_str, 
@@ -224,7 +221,6 @@ if 'items_cotizacion' not in st.session_state:
 st.write("### Añadir Material o Servicio")
 
 with st.form("form_item", clear_on_submit=True):
-    # NUEVO CAMPO: Tipo de servicio
     tipo_servicio = st.selectbox("Tipo de servicio / bloque (Ej: Materiales, Mano de Obra)", 
                                  ["Materiales", "Mano de Obra Especializada", "Mantenimiento", "Instalación", "Otro"])
     
