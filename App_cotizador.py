@@ -31,7 +31,7 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
     pdf.add_page()
     pdf.set_auto_page_break(auto=False)
     
-    # --- ENCABEZADO ---
+    # --- ENCABEZADO IZQUIERDO ---
     ruta_logo = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.png")
     try:
         if os.path.exists(ruta_logo):
@@ -39,7 +39,6 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
     except:
         pass
 
-    # Datos Empresa (Izquierda)
     pdf.set_xy(12, 35)
     pdf.set_font("Arial", "B", 16)
     pdf.set_text_color(30, 80, 180)
@@ -53,16 +52,17 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
     pdf.set_font("Arial", "B", 7)
     pdf.cell(0, 4, f"NIT: {NIT}", new_x="LMARGIN", new_y="NEXT")
     pdf.set_font("Arial", "", 7)
-    pdf.cell(0, 4, f"Teléfono: {TELEFONO}", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 4, f"Telefono: {TELEFONO}", new_x="LMARGIN", new_y="NEXT") # Sin tilde
     pdf.cell(0, 4, f"Correo: {CORREO}", new_x="LMARGIN", new_y="NEXT")
 
-    # Recuadro Cotización (Derecha)
+    # --- RECUADRO DERECHO (COTIZACIÓN) ---
     pdf.set_xy(120, 10)
     pdf.set_draw_color(200, 200, 200)
     pdf.cell(75, 32, "", border=1)
+    
     pdf.set_xy(120, 12)
     pdf.set_font("Arial", "B", 12)
-    pdf.cell(75, 6, "COTIZACIÓN", align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(75, 6, "COTIZACIÓN", align="C")
     
     pdf.set_draw_color(30, 80, 180)
     pdf.set_line_width(0.5)
@@ -70,43 +70,50 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
     
     pdf.set_font("Arial", "", 8)
     pdf.set_text_color(0, 0, 0)
+    
+    # Usamos coordenadas exactas para que no se muevan
     pdf.set_xy(120, 21)
-    pdf.cell(75, 5, f"Número: #2026-{numero_cot:03d}", align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(75, 5, f"Número: #2026-{numero_cot:03d}", align="C")
+    
     fecha_actual = datetime.now().strftime("%d de %B, %Y")
     meses = {"January": "Enero", "February": "Febrero", "March": "Marzo", "April": "Abril", "May": "Mayo", "June": "Junio", "July": "Julio", "August": "Agosto", "September": "Septiembre", "October": "Octubre", "November": "Noviembre", "December": "Diciembre"}
     for k, v in meses.items():
         fecha_actual = fecha_actual.replace(k, v)
-    pdf.cell(75, 5, f"Fecha: {fecha_actual}", align="C", new_x="LMARGIN", new_y="NEXT")
-    pdf.cell(75, 5, "Validez: 15 días calendario", align="C", new_x="LMARGIN", new_y="NEXT")
+        
+    pdf.set_xy(120, 26)
+    pdf.cell(75, 5, f"Fecha: {fecha_actual}", align="C")
+    
+    pdf.set_xy(120, 31)
+    pdf.cell(75, 5, "Validez: 15 dias calendario", align="C") # Sin tilde
 
-    # Título Tabla
-    pdf.set_xy(12, 60)
+    # --- TÍTULO TABLA ---
+    pdf.set_xy(12, 58)
     pdf.set_font("Arial", "B", 9)
     pdf.set_text_color(30, 80, 180)
     pdf.cell(0, 5, "DETALLE DEL PRESUPUESTO", new_x="LMARGIN", new_y="NEXT")
     
     # --- TABLA DE ITEMS ---
-    pdf.set_xy(12, 66)
+    pdf.set_xy(12, 64)
     pdf.set_font("Arial", "B", 8)
     pdf.set_text_color(255, 255, 255)
     pdf.set_fill_color(30, 80, 180)
     pdf.set_draw_color(30, 80, 180)
     
-    # Encabezados
-    pdf.cell(10, 7, "ÍTEM", border=1, fill=True, align="C")
+    pdf.cell(10, 7, "ITEM", border=1, fill=True, align="C") # Sin tilde
     pdf.cell(88, 7, "DESCRIPCIÓN DEL MATERIAL / SERVICIO", border=1, fill=True, align="C")
     pdf.cell(12, 7, "CANT.", border=1, fill=True, align="C")
     pdf.cell(18, 7, "UNIDAD", border=1, fill=True, align="C")
     pdf.cell(22, 7, "UNITARIO", border=1, fill=True, align="C")
     pdf.cell(23, 7, "TOTAL", border=1, fill=True, align="C", new_x="LMARGIN", new_y="NEXT")
 
-    # Filas
     pdf.set_text_color(0, 0, 0)
     pdf.set_draw_color(200, 200, 200)
     pdf.set_font("Arial", "", 7)
     
     for i, item in enumerate(items, start=1):
-        lineas = item['descripcion'].split('\n')
+        # Limpiamos el texto para que no dañe el PDF
+        lineas = item['descripcion'].replace('á','a').replace('é','e').replace('í','i').replace('ó','o').replace('ú','u').replace('ñ','n').split('\n')
+        
         altura_fila = max(8, (len(lineas) * 4) + 2) 
         
         x_actual = pdf.get_x()
@@ -116,16 +123,12 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
         pdf.cell(88, altura_fila, "", border=1)
         pdf.set_xy(x_actual + 12, y_actual + 1)
         
-        es_primera = True
         for linea in lineas:
             if linea.strip():
-                if not es_primera and linea.strip().startswith('-'):
-                    # AQUI ESTA EL TRUCO: Usamos la viñeta y codificamos en latin-1
-                    pdf.cell(4, 4, chr(149).encode('latin-1').decode('latin-1'), align="C") 
-                    pdf.cell(0, 4, linea.strip()[1:].strip().encode('latin-1', 'replace').decode('latin-1'), new_x="LMARGIN", new_y="NEXT")
-                else:
-                    pdf.cell(0, 4, linea.strip().encode('latin-1', 'replace').decode('latin-1'), new_x="LMARGIN", new_y="NEXT")
-                es_primera = False
+                # Quitamos el guion y usamos un punto simple para evitar errores
+                texto_limpio = linea.strip().lstrip('-').strip()
+                pdf.cell(4, 4, "-", align="C") 
+                pdf.cell(0, 4, texto_limpio, new_x="LMARGIN", new_y="NEXT")
                 
         pdf.set_xy(x_actual + 98, y_actual)
         pdf.cell(12, altura_fila, str(item['cantidad']), border=1, align="C")
@@ -134,22 +137,20 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
         pdf.cell(23, altura_fila, f"${item['total']:,.0f}".replace(",", "."), border=1, align="R", new_x="LMARGIN", new_y="NEXT")
 
     # --- TOTALES ---
-    pdf.ln(3)
-    x_totales = 125
-    pdf.set_x(x_totales)
+    pdf.set_xy(125, pdf.get_y() + 3)
     pdf.set_font("Arial", "", 8)
     pdf.cell(40, 7, "Subtotal:", border=1, align="L")
-    pdf.cell(30, 7, f"${total_neto:,.0f}".replace(",", "."), border=1, align="R", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(30, 7, f"${total_neto:,.0f}".replace(",", "."), border=1, align="R")
     
-    pdf.set_x(x_totales)
+    pdf.set_xy(125, pdf.get_y() + 7)
     pdf.cell(40, 7, "Impuestos (IVA 0%):", border=1, align="L")
-    pdf.cell(30, 7, "$0", border=1, align="R", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(30, 7, "$0", border=1, align="R")
     
-    pdf.set_x(x_totales)
+    pdf.set_xy(125, pdf.get_y() + 7)
     pdf.set_text_color(30, 80, 180)
     pdf.set_font("Arial", "B", 8)
     pdf.cell(40, 7, "Total Neto:", border=1, align="L")
-    pdf.cell(30, 7, f"${total_neto:,.0f}".replace(",", "."), border=1, align="R", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(30, 7, f"${total_neto:,.0f}".replace(",", "."), border=1, align="R")
 
     # --- CONDICIONES COMERCIALES ---
     pdf.set_y(215)
@@ -168,19 +169,19 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
     pdf.set_x(14)
     pdf.set_font("Arial", "", 7)
     condiciones = [
-        ("• Forma de Pago: ", "Anticipo establecido para la compra de materiales y saldo restante contra entrega a satisfacción de los trabajos realizados."),
-        ("• Tiempo de Ejecución: ", "A convenir y programar de manera conjunta tras la confirmación formal del servicio."),
-        ("• Garantía: ", "Aplica garantía sobre el servicio técnico y la mano de obra especializada brindada."),
-        ("• Exclusiones: ", "No se contemplan obras civiles mayores, resanes de pintura profundos ni acometidas eléctricas externas al alcance mencionado.")
+        ("- Forma de Pago:", "Anticipo establecido para la compra de materiales y saldo restante contra entrega a satisfacción de los trabajos realizados."),
+        ("- Tiempo de Ejecución:", "A convenir y programar de manera conjunta tras la confirmación formal del servicio."),
+        ("- Garantía:", "Aplica garantía sobre el servicio técnico y la mano de obra especializada brindada."),
+        ("- Exclusiones:", "No se contemplan obras civiles mayores, resanes de pintura profundos ni acometidas eléctricas externas al alcance mencionado.")
     ]
     
     for titulo, texto in condiciones:
-        # Codificamos también las condiciones para evitar el error de caracteres
-        titulo_seguro = titulo.encode('latin-1', 'replace').decode('latin-1')
-        texto_seguro = texto.encode('latin-1', 'replace').decode('latin-1')
+        # Remplazamos tildes problemáticas
+        titulo_seguro = titulo.replace('ó','o').replace('í','i').replace('á','a')
+        texto_seguro = texto.replace('ó','o').replace('í','i').replace('á','a').replace('é','e').replace('ñ','n')
         
         pdf.set_font("Arial", "B", 7)
-        pdf.cell(28, 5, titulo_seguro, new_x="RIGHT")
+        pdf.cell(30, 5, titulo_seguro)
         pdf.set_font("Arial", "", 7)
         pdf.multi_cell(0, 5, texto_seguro, new_x="LMARGIN", new_y="NEXT")
         pdf.set_x(14)
@@ -201,8 +202,7 @@ st.write("### Añadir Material o Servicio")
 with st.form("form_item", clear_on_submit=True):
     col1, col2, col3, col4 = st.columns([4, 1, 1, 2])
     with col1:
-        # El truco: le decimos al usuario que empiece con "- " para que salga la viñeta
-        desc = st.text_area("Descripción (Escribe '-' y un espacio para cada viñeta)", height=100, placeholder="- Ítem 1\n- Ítem 2\n- Ítem 3")
+        desc = st.text_area("Descripción (Escribe '-' y espacio para viñetas)", height=100, placeholder="- Item 1\n- Item 2")
     with col2:
         cant = st.number_input("Cant.", min_value=1, step=1)
     with col3:
@@ -225,7 +225,6 @@ if agregar:
     else:
         st.error("Escribe una descripción.")
 
-# Mostrar lista y Totales
 if st.session_state.items_cotizacion:
     st.write("### Ítems agregados")
     total_general = 0
@@ -247,11 +246,10 @@ if st.session_state.items_cotizacion:
     with col_btn2:
         if st.button("Generar Cotización PDF", type="primary"):
             numero_actual = obtener_siguiente_numero()
-            
             pdf_bytes = generar_pdf_cotizacion(st.session_state.items_cotizacion, total_general, numero_actual)
             incrementar_contador(numero_actual)
             
-            st.success("✅ PDF Generado con éxito. Todo en una sola página.")
+            st.success("✅ PDF Generado con éxito.")
             st.download_button(
                 label="⬇️ Descargar Cotización PDF",
                 data=pdf_bytes,
