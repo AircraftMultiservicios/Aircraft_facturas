@@ -40,23 +40,22 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
     ruta_logo = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.png")
     try:
         if os.path.exists(ruta_logo):
-            # Redujimos el logo a 50x50 y lo bajamos un poco (y = height - 75)
             c.drawImage(ruta_logo, 40, height - 75, width=50, height=50, preserveAspectRatio=True, mask='auto')
     except Exception as e:
         print(f"Error logo: {e}")
 
-    # Datos Empresa (Movidos a X=115 para que no choquen con el logo)
+    # Datos Empresa
     c.setFont("Helvetica-Bold", 16)
     c.setFillColor(colors.HexColor("#1e50b4"))
     c.drawString(115, height - 50, "AIRCRAFT")
     c.drawString(115, height - 65, "MULTISERVICIOS")
     
-    c.setFont("Helvetica", 7)
+    c.setFont("Helvetica", 8) # Un poco más grande
     c.setFillColor(colors.black)
     c.drawString(115, height - 75, SLOGAN)
-    c.setFont("Helvetica-Bold", 7)
+    c.setFont("Helvetica-Bold", 8)
     c.drawString(115, height - 85, f"NIT: {NIT}")
-    c.setFont("Helvetica", 7)
+    c.setFont("Helvetica", 8)
     c.drawString(115, height - 93, f"Telefono: {TELEFONO}")
     c.drawString(115, height - 101, f"Correo: {CORREO}")
 
@@ -73,7 +72,7 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
     c.setLineWidth(2)
     c.line(width - 230, height - 75, width - 50, height - 75)
     
-    c.setFont("Helvetica", 8)
+    c.setFont("Helvetica", 9) # Más grande
     c.drawCentredString(width - 140, height - 90, f"Numero: #2026-{numero_cot:03d}")
     
     fecha_actual = datetime.now().strftime("%d de %B, %Y")
@@ -84,18 +83,20 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
     c.drawCentredString(width - 140, height - 120, "Validez: 15 dias calendario")
 
     # --- TÍTULO TABLA ---
-    c.setFont("Helvetica-Bold", 9)
+    c.setFont("Helvetica-Bold", 10) # Más grande
     c.setFillColor(colors.HexColor("#1e50b4"))
     c.drawString(40, height - 190, "DETALLE DEL PRESUPUESTO")
 
     # --- TABLA DE ITEMS CON REPORTLAB ---
     data = [["ITEM", "DESCRIPCION DEL MATERIAL / SERVICIO", "CANT.", "UNIDAD", "UNITARIO", "TOTAL"]]
     
+    # AQUI ESTA EL CAMBIO DE ACCESIBILIDAD:
+    # Subimos fontSize a 8.5 y leading (interlineado) a 12 para que respire mejor
     estilo_celda = ParagraphStyle(
         name='Normal',
         fontName='Helvetica',
-        fontSize=7,
-        leading=10,
+        fontSize=8.5, 
+        leading=12, 
         alignment=TA_LEFT
     )
 
@@ -104,7 +105,8 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
         lineas = [l.strip().lstrip('-').strip() for l in texto_limpio.split('\n') if l.strip()]
         
         titulo = item.get('tipo_servicio', 'Materiales')
-        texto_celda = f"<b>{titulo}</b><br/>"
+        # Le damos un poquito más de tamaño al título del bloque
+        texto_celda = f"<font size=10><b>{titulo}</b></font><br/><br/>"
         for l in lineas:
             texto_celda += f"- {l}<br/>"
             
@@ -122,20 +124,21 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
             total_str
         ])
 
-    tabla = Table(data, colWidths=[35, 250, 40, 55, 65, 70])
+    # Ajustamos un poco los anchos para que el texto tenga más espacio
+    tabla = Table(data, colWidths=[30, 260, 35, 50, 65, 70])
     
     estilo_tabla = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#1e50b4")),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 8),
+        ('FONTSIZE', (0, 0), (-1, 0), 9), # Encabezados más grandes
         ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
         ('TOPPADDING', (0, 0), (-1, 0), 8),
         
         ('BACKGROUND', (0, 1), (-1, -1), colors.white),
         ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
-        ('FONTNAME', (0, 1), (0, -1), 'Helvetica'),
+        ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'), # Número de item en negrita
         ('FONTNAME', (2, 1), (-1, -1), 'Helvetica'),
         
         ('ALIGN', (0, 1), (0, -1), 'CENTER'),
@@ -144,10 +147,11 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
         ('ALIGN', (4, 1), (-1, -1), 'RIGHT'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         
-        ('FONTSIZE', (0, 1), (-1, -1), 7),
+        ('FONTSIZE', (0, 1), (0, -1), 9), # Números más grandes
+        ('FONTSIZE', (2, 1), (-1, -1), 8.5), # Cantidades y precios más grandes
         ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#cccccc")),
-        ('TOPPADDING', (0, 1), (-1, -1), 6),
-        ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+        ('TOPPADDING', (0, 1), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
         ('LEFTPADDING', (1, 1), (1, -1), 10),
     ])
     tabla.setStyle(estilo_tabla)
@@ -159,7 +163,7 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
     y_totales = height - 220 - alto_tabla 
     
     c.setStrokeColor(colors.HexColor("#cccccc"))
-    c.setFont("Helvetica", 8)
+    c.setFont("Helvetica", 9) # Letra de totales más grande
     c.setFillColor(colors.black)
     
     c.drawString(width - 200, y_totales - 10, "Subtotal:")
@@ -170,11 +174,11 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
     c.drawRightString(width - 50, y_totales - 25, "$0")
     c.line(width - 210, y_totales - 30, width - 40, y_totales - 30)
     
-    c.setFont("Helvetica-Bold", 8)
+    c.setFont("Helvetica-Bold", 10) # Total Neto resaltado
     c.setFillColor(colors.HexColor("#1e50b4"))
-    c.drawString(width - 200, y_totales - 40, "Total Neto:")
-    c.drawRightString(width - 50, y_totales - 40, f"${total_neto:,.0f}".replace(",", "."))
-    c.line(width - 210, y_totales - 45, width - 40, y_totales - 45)
+    c.drawString(width - 200, y_totales - 42, "Total Neto:")
+    c.drawRightString(width - 50, y_totales - 42, f"${total_neto:,.0f}".replace(",", "."))
+    c.line(width - 210, y_totales - 47, width - 40, y_totales - 47)
 
     # --- CONDICIONES COMERCIALES ---
     c.setFillColor(colors.HexColor("#f5f5f5"))
@@ -184,7 +188,7 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
     c.rect(40, 80, 4, 80, fill=1, stroke=0)
     
     c.setFillColor(colors.black)
-    c.setFont("Helvetica-Bold", 9)
+    c.setFont("Helvetica-Bold", 10)
     c.drawString(50, 145, "CONDICIONES COMERCIALES")
     
     condiciones = [
@@ -196,9 +200,9 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
     
     y_texto = 130
     for titulo, texto in condiciones:
-        c.setFont("Helvetica-Bold", 7)
+        c.setFont("Helvetica-Bold", 8) # Condiciones más legibles
         c.drawString(50, y_texto, titulo)
-        c.setFont("Helvetica", 7)
+        c.setFont("Helvetica", 8)
         c.drawString(145, y_texto, texto) 
         y_texto -= 12
 
