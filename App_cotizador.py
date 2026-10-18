@@ -40,24 +40,25 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
     ruta_logo = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.png")
     try:
         if os.path.exists(ruta_logo):
-            c.drawImage(ruta_logo, 40, height - 80, width=60, height=60, preserveAspectRatio=True, mask='auto')
+            # Redujimos el logo a 50x50 y lo bajamos un poco (y = height - 75)
+            c.drawImage(ruta_logo, 40, height - 75, width=50, height=50, preserveAspectRatio=True, mask='auto')
     except Exception as e:
         print(f"Error logo: {e}")
 
-    # Datos Empresa (Ajustados para centrar exactamente con el logo)
+    # Datos Empresa (Movidos a X=115 para que no choquen con el logo)
     c.setFont("Helvetica-Bold", 16)
     c.setFillColor(colors.HexColor("#1e50b4"))
-    c.drawString(110, height - 60, "AIRCRAFT")
-    c.drawString(110, height - 75, "MULTISERVICIOS")
+    c.drawString(115, height - 50, "AIRCRAFT")
+    c.drawString(115, height - 65, "MULTISERVICIOS")
     
     c.setFont("Helvetica", 7)
     c.setFillColor(colors.black)
-    c.drawString(110, height - 85, SLOGAN)
+    c.drawString(115, height - 75, SLOGAN)
     c.setFont("Helvetica-Bold", 7)
-    c.drawString(110, height - 95, f"NIT: {NIT}")
+    c.drawString(115, height - 85, f"NIT: {NIT}")
     c.setFont("Helvetica", 7)
-    c.drawString(110, height - 103, f"Telefono: {TELEFONO}")
-    c.drawString(110, height - 111, f"Correo: {CORREO}")
+    c.drawString(115, height - 93, f"Telefono: {TELEFONO}")
+    c.drawString(115, height - 101, f"Correo: {CORREO}")
 
     # --- RECUADRO DERECHO (COTIZACIÓN) ---
     c.setStrokeColor(colors.HexColor("#cccccc"))
