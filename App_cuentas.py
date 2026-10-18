@@ -1,9 +1,13 @@
 import streamlit as st
 import os
-import json
 from datetime import datetime
-from fpdf import FPDF
-from num2words import num2words
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.lib import colors
+from reportlab.platypus import Table, TableStyle, Paragraph
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.enums import TA_LEFT
+import textwrap
 
 # --- CONFIGURACIÓN DE DATOS FIJOS ---
 NOMBRE_COBRADOR = "Eduardo Alexander Méndez Realpe"
@@ -26,95 +30,188 @@ def incrementar_contador(numero):
         f.write(str(numero + 1))
 
 def numero_a_letras(numero):
+    # Mantenemos esta función simple para el texto en letras
+    from num2words import num2words
     letras = num2words(numero, lang='es').capitalize()
     return f"{letras} pesos M/CTE"
 
-# --- GENERADOR DE PDF ---
-def generar_pdf(datos, numero_cuenta):
-    pdf = FPDF()
-    pdf.add_page()
-    
-    # --- LOGO ---
-    # Busca el logo en la misma carpeta del script
-    ruta_logo = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.png")
-    
-    try:
-        # Si el archivo existe, lo pone en la esquina superior derecha
-        if os.path.exists(ruta_logo):
-            pdf.image(ruta_logo, x=10, y=10, w=22)
-        else:
-            # Si no lo encuentra, avisa en la consola (no rompe la app)
-            print("ADVERTENCIA: No se encontró el archivo logo.png en la carpeta.")
-    except Exception as e:
-        print(f"Error al cargar el logo: {e}")
+# --- GENERADOR DE PDF CON REPORTLAB ---
+def generar_pdf_cuenta(datos, numero_cuenta):
+    ruta_pdf = "cuenta_temp.pdf"
+    c = canvas.Canvas(ruta_pdf, pagesize=letter)
+    width, height = letter
 
-    # Título
-    pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 10, "CUENTA DE COBRO", align="C", new_x="LMARGIN", new_y="NEXT")
+    # --- ENCABEZADO IZQUIERDO (Logo y Datos) ---
+    y_centro = height - 75
     
-    # Número de cuenta
-    pdf.set_font("Arial", "", 12)
-    pdf.cell(0, 10, f"N° {numero_cuenta:03d}", align="C", new_x="LMARGIN", new_y="NEXT")
+    ruta_logo = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.png")
+    try:
+        if os.path.exists(ruta_logo):
+            c.drawImage(ruta_logo, 40, y_centro - 25, width=50, height=50, preserveAspectRatio=True, mask='auto')
+    except Exception as e:
+        print(f"Error logo: {e}")
+
+    c.setFont("Helvetica-Bold", 16)
+    c.setFillColor(colors.HexColor("#1e50b4"))
+    c.drawString(115, y_centro + 15, "AIRCRAFT")
+    c.drawString(115, y_centro, "MULTISERVICIOS")
     
-    # Fecha
-    fecha_actual = datetime.now().strftime("%d de %B de %Y")
-    meses = {"January": "enero", "February": "febrero", "March": "marzo", "April": "abril", "May": "mayo", "June": "junio", "July": "julio", "August": "agosto", "September": "septiembre", "October": "octubre", "November": "noviembre", "December": "diciembre"}
+    c.setFont("Helvetica", 7.5) 
+    c.setFillColor(colors.black)
+    c.drawString(115, y_centro - 10, "SISTEMAS DE CLIMATIZACION Y REFRIGERACION")
+    c.setFont("Helvetica-Bold", 7.5)
+    c.drawString(115, y_centro - 19, f"NIT: 1087200869")
+    c.setFont("Helvetica", 7.5)
+    c.drawString(115, y_centro - 27, f"Telefono: +57 302 681 2764")
+    c.drawString(115, y_centro - 35, f"Correo: aircraftmultiservicios30@gmail.com")
+
+    # --- RECUADRO DERECHO (CUENTA DE COBRO) ---
+    c.setStrokeColor(colors.HexColor("#cccccc"))
+    c.setLineWidth(1)
+    c.rect(width - 240, height - 140, 200, 90)
+    
+    c.setFont("Helvetica-Bold", 12)
+    c.setFillColor(colors.black)
+    c.drawCentredString(width - 140, height - 65, "CUENTA DE COBRO")
+    
+    c.setStrokeColor(colors.HexColor("#1e50b4"))
+    c.setLineWidth(2)
+    c.line(width - 230, height - 75, width - 50, height - 75)
+    
+    c.setFont("Helvetica", 9) 
+    c.drawCentredString(width - 140, height - 90, f"Numero: #{numero_cuenta:03d}")
+    
+    fecha_actual = datetime.now().strftime("%d de %B, %Y")
+    meses = {"January": "Enero", "February": "Febrero", "March": "Marzo", "April": "Abril", "May": "Mayo", "June": "Junio", "July": "Julio", "August": "Agosto", "September": "Septiembre", "October": "Octubre", "November": "Noviembre", "December": "Diciembre"}
     for k, v in meses.items():
         fecha_actual = fecha_actual.replace(k, v)
+    c.drawCentredString(width - 140, height - 105, f"Fecha: {fecha_actual}")
+    c.drawCentredString(width - 140, height - 120, f"Lugar: {CIUDAD}")
+
+    # --- DATOS DEL CLIENTE ---
+    c.setFont("Helvetica-Bold", 10)
+    c.setFillColor(colors.HexColor("#1e50b4"))
+    c.drawString(40, height - 180, "DEBE A:")
+    
+    c.setFont("Helvetica", 9)
+    c.setFillColor(colors.black)
+    c.drawString(40, height - 195, f"Nombre: {NOMBRE_COBRADOR}")
+    c.drawString(40, height - 207, f"Cédula: {CEDULA_COBRADOR}")
+    
+    c.setFont("Helvetica-Bold", 10)
+    c.setFillColor(colors.HexColor("#1e50b4"))
+    c.drawString(40, height - 230, "A:")
+    
+    c.setFont("Helvetica", 9)
+    c.setFillColor(colors.black)
+    c.drawString(40, height - 245, f"Nombre: {datos['cliente_nombre']}")
+    c.drawString(40, height - 257, f"Cédula: {datos['cliente_cedula']}")
+    c.drawString(40, height - 269, f"Teléfono: {datos['cliente_telefono']}")
+
+    # --- TÍTULO TABLA ---
+    c.setFont("Helvetica-Bold", 10) 
+    c.setFillColor(colors.HexColor("#1e50b4"))
+    c.drawString(40, height - 295, "DETALLE DEL SERVICIO")
+
+    # --- TABLA DE CONCEPTO ---
+    data = [["CONCEPTO / DESCRIPCIÓN DEL SERVICIO", "VALOR"]]
+    
+    estilo_celda = ParagraphStyle(
+        name='Normal',
+        fontName='Helvetica',
+        fontSize=8.5, 
+        leading=12, 
+        alignment=TA_LEFT
+    )
+
+    # Limpiamos acentos
+    texto_limpio = datos['concepto'].replace('á','a').replace('é','e').replace('í','i').replace('ó','o').replace('ú','u').replace('ñ','n')
+    
+    celda_parrafo = Paragraph(texto_limpio, estilo_celda)
+    precio_str = f"${datos['valor']:,.0f}".replace(",", ".")
+    
+    data.append([celda_parrafo, precio_str])
+
+    # Tabla ancha igual que la cotización
+    tabla = Table(data, colWidths=[420, 92])
+    
+    estilo_tabla = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#1e50b4")),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (0, 0), 'CENTER'), # Título alineado a la izquierda
+        ('ALIGN', (1, 0), (1, 0), 'CENTER'), # Valor centrado
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 9), 
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+        ('TOPPADDING', (0, 0), (-1, 0), 8),
         
-    pdf.cell(0, 15, f"{CIUDAD}, {fecha_actual}", align="R", new_x="LMARGIN", new_y="NEXT")
+        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+        ('FONTNAME', (1, 1), (1, -1), 'Helvetica'), # Precio normal
+        
+        ('ALIGN', (0, 1), (0, -1), 'LEFT'),
+        ('ALIGN', (1, 1), (1, -1), 'RIGHT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        
+        ('FONTSIZE', (1, 1), (1, -1), 9), 
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#cccccc")),
+        ('TOPPADDING', (0, 1), (-1, -1), 15), # Más espacio interior para el texto
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 15),
+        ('LEFTPADDING', (0, 1), (0, -1), 10),
+    ])
+    tabla.setStyle(estilo_tabla)
     
-    # Sección DEBE A
-    pdf.set_font("Arial", "B", 11)
-    pdf.cell(0, 10, "DEBE A:", new_x="LMARGIN", new_y="NEXT")
-    pdf.set_font("Arial", "", 11)
-    pdf.cell(0, 7, f"Nombre:   {NOMBRE_COBRADOR}", new_x="LMARGIN", new_y="NEXT")
-    pdf.cell(0, 7, f"Cédula:   {CEDULA_COBRADOR}", new_x="LMARGIN", new_y="NEXT")
-    pdf.ln(5)
-    
-    # Sección A (Cliente)
-    pdf.set_font("Arial", "B", 11)
-    pdf.cell(0, 10, "A:", new_x="LMARGIN", new_y="NEXT")
-    pdf.set_font("Arial", "", 11)
-    pdf.cell(0, 7, f"Nombre:   {datos['cliente_nombre']}", new_x="LMARGIN", new_y="NEXT")
-    pdf.cell(0, 7, f"Cédula:   {datos['cliente_cedula']}", new_x="LMARGIN", new_y="NEXT")
-    pdf.cell(0, 7, f"Teléfono: {datos['cliente_telefono']}", new_x="LMARGIN", new_y="NEXT")
-    pdf.ln(5)
+    ancho_tabla, alto_tabla = tabla.wrapOn(c, width, height)
+    tabla.drawOn(c, 40, height - 315 - alto_tabla)
 
-    # Tabla de conceptos
-    pdf.set_fill_color(240, 240, 240)
-    pdf.set_font("Arial", "B", 10)
-    pdf.cell(130, 10, "CONCEPTO / DESCRIPCIÓN", border=1, fill=True, align="C")
-    pdf.cell(45, 10, "VALOR", border=1, fill=True, align="C", new_x="LMARGIN", new_y="NEXT")
+    # --- TOTAL A PAGAR ---
+    y_totales = height - 325 - alto_tabla 
     
-    pdf.set_font("Arial", "", 10)
-    pdf.cell(130, 20, datos['concepto'], border=1)
-    valor_formateado = f"${datos['valor']:,.0f}".replace(",", ".")
-    pdf.cell(45, 20, valor_formateado, border=1, align="R", new_x="LMARGIN", new_y="NEXT")
+    c.setStrokeColor(colors.HexColor("#cccccc"))
+    c.setFont("Helvetica-Bold", 10) 
+    c.setFillColor(colors.HexColor("#1e50b4"))
+    c.drawString(width - 210, y_totales - 15, "TOTAL A PAGAR:")
+    c.drawRightString(width - 40, y_totales - 15, f"${datos['valor']:,.0f}".replace(",", "."))
+    c.line(width - 220, y_totales - 20, width - 40, y_totales - 20)
+
+    # --- VALOR EN LETRAS (Recuadro gris) ---
+    c.setFillColor(colors.HexColor("#f5f5f5"))
+    c.rect(40, y_totales - 70, width - 80, 35, fill=1, stroke=0)
     
-    pdf.set_font("Arial", "B", 10)
-    pdf.cell(130, 10, "TOTAL A PAGAR:", border=1, align="R")
-    pdf.cell(45, 10, valor_formateado, border=1, align="R", new_x="LMARGIN", new_y="NEXT")
+    c.setFillColor(colors.HexColor("#1e50b4"))
+    c.rect(40, y_totales - 70, 4, 35, fill=1, stroke=0)
     
-    # Suma en letras
-    pdf.ln(5)
-    pdf.set_font("Arial", "I", 10)
+    c.setFillColor(colors.black)
+    c.setFont("Helvetica-Oblique", 8.5)
     letras = numero_a_letras(datos['valor'])
-    pdf.cell(0, 10, f"La suma de: {letras}", new_x="LMARGIN", new_y="NEXT")
-    
-    # Firma
-    pdf.ln(20)
-    pdf.set_font("Arial", "B", 10)
-    pdf.cell(0, 5, "_________________________________________", new_x="LMARGIN", new_y="NEXT")
-    pdf.cell(0, 5, NOMBRE_COBRADOR, new_x="LMARGIN", new_y="NEXT")
-    pdf.set_font("Arial", "", 10)
-    pdf.cell(0, 5, f"C.C. {CEDULA_COBRADOR}", new_x="LMARGIN", new_y="NEXT")
+    c.drawString(50, y_totales - 52, "La suma de:")
+    c.setFont("Helvetica", 8.5)
+    # Usamos textwrap por si el número en letras es muy largo
+    lineas_letras = textwrap.wrap(letras, width=100)
+    c.drawString(100, y_totales - 52, lineas_letras[0])
+    if len(lineas_letras) > 1:
+        c.drawString(100, y_totales - 62, lineas_letras[1])
 
-    # Retornar el PDF como bytes (forma actualizada)
-    return bytes(pdf.output())
+    # --- FIRMA ---
+    c.setFillColor(colors.black)
+    c.setStrokeColor(colors.black)
+    c.line(50, 120, 250, 120) # Línea de firma
+    
+    c.setFont("Helvetica-Bold", 9)
+    c.drawString(50, 105, NOMBRE_COBRADOR)
+    c.setFont("Helvetica", 9)
+    c.drawString(50, 93, f"C.C. {CEDULA_COBRADOR}")
+
+    c.save()
+    
+    with open(ruta_pdf, "rb") as f:
+        pdf_bytes = f.read()
+    os.remove(ruta_pdf)
+    
+    return pdf_bytes
 
 # --- INTERFAZ GRÁFICA (STREAMLIT) ---
-st.set_page_config(page_title="Cuentas de Cobro - AIRCRAFT", page_icon="🧾")
+st.set_page_config(page_title="Cuentas de Cobro - AIRCRAFT", page_icon="🧾", layout="wide")
 
 st.title("🧾 Generador de Cuentas de Cobro")
 st.subheader("AIRCRAFT MULTISERVICIOS")
@@ -126,10 +223,10 @@ with st.form("formulario_cuenta"):
     cliente_telefono = st.text_input("Teléfono del Cliente")
     
     st.write("Detalles del Servicio")
-    concepto = st.text_area("Concepto / Descripción")
+    concepto = st.text_area("Concepto / Descripción", height=100)
     valor = st.number_input("Valor a cobrar ($)", min_value=0, step=10000)
     
-    submit = st.form_submit_button("Generar Cuenta de Cobro")
+    submit = st.form_submit_button("Generar Cuenta de Cobro", type="primary")
 
 if submit:
     if not cliente_nombre or not concepto or valor == 0:
@@ -146,7 +243,7 @@ if submit:
         }
         
         # Generar PDF
-        pdf_bytes = generar_pdf(datos, numero_actual)
+        pdf_bytes = generar_pdf_cuenta(datos, numero_actual)
         
         # Actualizar contador
         incrementar_contador(numero_actual)
@@ -154,7 +251,7 @@ if submit:
         st.success(f"✅ Cuenta de cobro N° {numero_actual:03d} generada con éxito.")
         
         st.download_button(
-            label="⬇️ Descargar PDF",
+            label="⬇️ Descargar Cuenta de Cobro PDF",
             data=pdf_bytes,
             file_name=f"Cuenta_Cobro_{numero_actual:03d}.pdf",
             mime="application/pdf"
