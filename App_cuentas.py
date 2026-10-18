@@ -104,7 +104,7 @@ def generar_pdf(datos, numero_cuenta):
     pdf.set_font("Arial", "", 10)
     pdf.cell(0, 5, f"C.C. {CEDULA_COBRADOR}", new_x="LMARGIN", new_y="NEXT")
 
-    return pdf.output(dest='S').encode('latin-1')
+    return bytes(pdf.output())
 
 # --- INTERFAZ GRÁFICA (STREAMLIT) ---
 st.set_page_config(page_title="Cuentas de Cobro - AIRCRAFT", page_icon="🧾")
