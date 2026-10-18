@@ -65,9 +65,10 @@ def generar_pdf_cuenta(datos, numero_cuenta):
     c.drawString(115, y_centro - 35, f"Correo: aircraftmultiservicios30@gmail.com")
 
     # --- RECUADRO DERECHO (CUENTA DE COBRO) ---
+    # Este recuadro mide 200 de ancho y termina en width - 40
     c.setStrokeColor(colors.HexColor("#cccccc"))
     c.setLineWidth(1)
-    c.rect(width - 240, height - 140, 200, 90) # Termina en width - 40
+    c.rect(width - 240, height - 140, 200, 90) 
     
     c.setFont("Helvetica-Bold", 12)
     c.setFillColor(colors.black)
@@ -128,7 +129,10 @@ def generar_pdf_cuenta(datos, numero_cuenta):
     precio_str = f"${datos['valor']:,.0f}".replace(",", ".")
     data.append([celda_parrafo, precio_str])
 
-    tabla = Table(data, colWidths=[420, 92])
+    # LA CLAVE: El ancho total de la tabla debe terminar en width - 40 (572).
+    # Si empieza en 40, el ancho total es 532. 
+    # Le damos 440 a la descripción y 92 al valor (suma 532).
+    tabla = Table(data, colWidths=[440, 92])
     
     estilo_tabla = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#1e50b4")),
@@ -166,17 +170,16 @@ def generar_pdf_cuenta(datos, numero_cuenta):
     c.setFont("Helvetica-Bold", 10) 
     c.setFillColor(colors.HexColor("#1e50b4"))
     
-    # El texto del total termina en width - 40
-    c.drawString(width - 210, y_totales - 15, "TOTAL A PAGAR:")
+    c.drawString(width - 220, y_totales - 15, "TOTAL A PAGAR:")
     c.drawRightString(width - 40, y_totales - 15, f"${datos['valor']:,.0f}".replace(",", "."))
-    c.line(width - 220, y_totales - 20, width - 40, y_totales - 20)
+    c.line(width - 230, y_totales - 20, width - 40, y_totales - 20)
 
     # --- VALOR EN LETRAS (Recuadro gris) ---
-    # El recuadro va exactamente de X=40 hasta width - 40 (mismo ancho que la tabla y los totales)
+    # Empieza en X=40 y termina exactamente en width - 40
     c.setFillColor(colors.HexColor("#f5f5f5"))
     c.rect(40, y_totales - 75, width - 80, 40, fill=1, stroke=0)
     
-    # Barra azul de la izquierda. Para que no robe espacio, la dibujamos encima del borde
+    # Barra azul a la izquierda
     c.setFillColor(colors.HexColor("#1e50b4"))
     c.rect(40, y_totales - 75, 5, 40, fill=1, stroke=0)
     
@@ -184,10 +187,10 @@ def generar_pdf_cuenta(datos, numero_cuenta):
     c.setFont("Helvetica-Oblique", 9)
     letras = numero_a_letras(datos['valor'])
     
-    # Movemos el texto para que quede alineado con el borde de la tabla (X=50)
+    # Texto alineado a la izquierda
     c.drawString(55, y_totales - 55, "La suma de:")
     c.setFont("Helvetica", 9)
-    lineas_letras = textwrap.wrap(letras, width=95)
+    lineas_letras = textwrap.wrap(letras, width=100)
     c.drawString(115, y_totales - 55, lineas_letras[0])
     if len(lineas_letras) > 1:
         c.drawString(115, y_totales - 67, lineas_letras[1])
