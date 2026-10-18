@@ -37,7 +37,7 @@ def generar_pdf(datos, numero_cuenta):
     
     # Intentar poner el logo
     try:
-        pdf.image("logo.png", x=160, y=10, w=35) # Esquina superior derecha
+        pdf.image("logo.jpg", x=160, y=10, w=35) # Esquina superior derecha
     except:
         pass # Si no encuentra el logo, lo ignora
 
