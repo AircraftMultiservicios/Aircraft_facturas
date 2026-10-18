@@ -41,7 +41,7 @@ def generar_pdf(datos, numero_cuenta):
     try:
         # Si el archivo existe, lo pone en la esquina superior derecha
         if os.path.exists(ruta_logo):
-            pdf.image(ruta_logo, x=160, y=10, w=35)
+            pdf.image(ruta_logo, x=10, y=10, w=35)
         else:
             # Si no lo encuentra, avisa en la consola (no rompe la app)
             print("ADVERTENCIA: No se encontró el archivo logo.png en la carpeta.")
