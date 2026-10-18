@@ -85,7 +85,7 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
     pdf.set_xy(120, 31)
     pdf.cell(75, 5, "Validez: 15 dias calendario", align="C")
 
-    # --- TÍTULO TABLA (Ajustado más abajo para que no choque) ---
+    # --- TÍTULO TABLA ---
     pdf.set_xy(12, 68)
     pdf.set_font("Arial", "B", 9)
     pdf.set_text_color(30, 80, 180)
@@ -110,28 +110,36 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
     pdf.set_font("Arial", "", 7)
     
     for i, item in enumerate(items, start=1):
-        # Limpiamos el texto para evitar caracteres raros
+        # 1. Limpiamos el texto
         texto_limpio = item['descripcion'].replace('á','a').replace('é','e').replace('í','i').replace('ó','o').replace('ú','u').replace('ñ','n')
-        lineas = texto_limpio.split('\n')
         
-        altura_fila = max(8, (len(lineas) * 4) + 2) 
+        # Limpiamos cualquier guion que se haya escrito por error al inicio de la línea
+        lineas = [l.strip().lstrip('-').strip() for l in texto_limpio.split('\n') if l.strip()]
         
-        x_actual = pdf.get_x()
-        y_actual = pdf.get_y()
+        # 2. Calculamos la altura de la fila según cuántas líneas de texto haya
+        altura_fila = max(10, (len(lineas) * 4) + 2) 
+        
+        # 3. Guardamos la posición inicial de la fila
+        x_inicial = 12
+        y_inicial = pdf.get_y()
 
+        # 4. Escribimos el número de la fila (Bien centrado)
+        pdf.set_xy(x_inicial, y_inicial)
         pdf.cell(10, altura_fila, str(i), border=1, align="C")
-        pdf.cell(88, altura_fila, "", border=1)
-        pdf.set_xy(x_actual + 12, y_actual + 1)
         
-        # Aquí está el truco: agregamos el guion desde el código
+        # 5. Escribimos el recuadro de la descripción vacío
+        pdf.cell(88, altura_fila, "", border=1)
+        
+        # 6. Nos posicionamos DENTRO de la celda de descripción para escribir el texto
+        pdf.set_xy(x_inicial + 12, y_inicial + 2)
+        
+        # Escribimos cada línea con su viñeta perfectamente alineada
         for linea in lineas:
-            if linea.strip():
-                # Borra si el usuario puso un guion por error al inicio
-                texto_final = linea.strip().lstrip('-').strip() 
-                pdf.cell(4, 4, "-", align="C") # Pone el guion bonito
-                pdf.cell(0, 4, texto_final, new_x="LMARGIN", new_y="NEXT")
+            pdf.cell(4, 4, "-", align="C") 
+            pdf.cell(0, 4, linea, new_x="LMARGIN", new_y="NEXT")
                 
-        pdf.set_xy(x_actual + 98, y_actual)
+        # 7. Volvemos a la posición vertical de la fila para escribir las demás columnas
+        pdf.set_xy(x_inicial + 98, y_inicial)
         pdf.cell(12, altura_fila, str(item['cantidad']), border=1, align="C")
         pdf.cell(18, altura_fila, item['unidad'], border=1, align="C")
         pdf.cell(22, altura_fila, f"${item['precio']:,.0f}".replace(",", "."), border=1, align="R")
@@ -199,8 +207,8 @@ st.write("### Añadir Material o Servicio")
 with st.form("form_item", clear_on_submit=True):
     col1, col2, col3, col4 = st.columns([4, 1, 1, 2])
     with col1:
-        # Texto de ayuda corregido
-        desc = st.text_area("Descripción (Escribe cada ítem en una línea nueva, SIN guiones)", height=100, placeholder="Rollo de tubería de cobre 1/2\nRollo de tubería de cobre 1/8")
+        # Instrucción clara: solo dar enter
+        desc = st.text_area("Descripción (Dale 'Enter' para separar cada ítem)", height=100, placeholder="Rollo de tubería de cobre 1/2\nRollo de tubería de cobre 1/8")
     with col2:
         cant = st.number_input("Cant.", min_value=1, step=1)
     with col3:
