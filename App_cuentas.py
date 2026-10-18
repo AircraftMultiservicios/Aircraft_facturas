@@ -30,7 +30,6 @@ def incrementar_contador(numero):
         f.write(str(numero + 1))
 
 def numero_a_letras(numero):
-    # Mantenemos esta función simple para el texto en letras
     from num2words import num2words
     letras = num2words(numero, lang='es').capitalize()
     return f"{letras} pesos M/CTE"
@@ -68,7 +67,7 @@ def generar_pdf_cuenta(datos, numero_cuenta):
     # --- RECUADRO DERECHO (CUENTA DE COBRO) ---
     c.setStrokeColor(colors.HexColor("#cccccc"))
     c.setLineWidth(1)
-    c.rect(width - 240, height - 140, 200, 90)
+    c.rect(width - 240, height - 140, 200, 90) # Termina en width - 40
     
     c.setFont("Helvetica-Bold", 12)
     c.setFillColor(colors.black)
@@ -124,22 +123,18 @@ def generar_pdf_cuenta(datos, numero_cuenta):
         alignment=TA_LEFT
     )
 
-    # Limpiamos acentos
     texto_limpio = datos['concepto'].replace('á','a').replace('é','e').replace('í','i').replace('ó','o').replace('ú','u').replace('ñ','n')
-    
     celda_parrafo = Paragraph(texto_limpio, estilo_celda)
     precio_str = f"${datos['valor']:,.0f}".replace(",", ".")
-    
     data.append([celda_parrafo, precio_str])
 
-    # Tabla ancha igual que la cotización
     tabla = Table(data, colWidths=[420, 92])
     
     estilo_tabla = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#1e50b4")),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('ALIGN', (0, 0), (0, 0), 'CENTER'), # Título alineado a la izquierda
-        ('ALIGN', (1, 0), (1, 0), 'CENTER'), # Valor centrado
+        ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+        ('ALIGN', (1, 0), (1, 0), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, 0), 9), 
         ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
@@ -147,7 +142,7 @@ def generar_pdf_cuenta(datos, numero_cuenta):
         
         ('BACKGROUND', (0, 1), (-1, -1), colors.white),
         ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
-        ('FONTNAME', (1, 1), (1, -1), 'Helvetica'), # Precio normal
+        ('FONTNAME', (1, 1), (1, -1), 'Helvetica'), 
         
         ('ALIGN', (0, 1), (0, -1), 'LEFT'),
         ('ALIGN', (1, 1), (1, -1), 'RIGHT'),
@@ -155,7 +150,7 @@ def generar_pdf_cuenta(datos, numero_cuenta):
         
         ('FONTSIZE', (1, 1), (1, -1), 9), 
         ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#cccccc")),
-        ('TOPPADDING', (0, 1), (-1, -1), 15), # Más espacio interior para el texto
+        ('TOPPADDING', (0, 1), (-1, -1), 15), 
         ('BOTTOMPADDING', (0, 1), (-1, -1), 15),
         ('LEFTPADDING', (0, 1), (0, -1), 10),
     ])
@@ -170,32 +165,37 @@ def generar_pdf_cuenta(datos, numero_cuenta):
     c.setStrokeColor(colors.HexColor("#cccccc"))
     c.setFont("Helvetica-Bold", 10) 
     c.setFillColor(colors.HexColor("#1e50b4"))
+    
+    # El texto del total termina en width - 40
     c.drawString(width - 210, y_totales - 15, "TOTAL A PAGAR:")
     c.drawRightString(width - 40, y_totales - 15, f"${datos['valor']:,.0f}".replace(",", "."))
     c.line(width - 220, y_totales - 20, width - 40, y_totales - 20)
 
     # --- VALOR EN LETRAS (Recuadro gris) ---
+    # El recuadro va exactamente de X=40 hasta width - 40 (mismo ancho que la tabla y los totales)
     c.setFillColor(colors.HexColor("#f5f5f5"))
-    c.rect(40, y_totales - 70, width - 80, 35, fill=1, stroke=0)
+    c.rect(40, y_totales - 75, width - 80, 40, fill=1, stroke=0)
     
+    # Barra azul de la izquierda. Para que no robe espacio, la dibujamos encima del borde
     c.setFillColor(colors.HexColor("#1e50b4"))
-    c.rect(40, y_totales - 70, 4, 35, fill=1, stroke=0)
+    c.rect(40, y_totales - 75, 5, 40, fill=1, stroke=0)
     
     c.setFillColor(colors.black)
-    c.setFont("Helvetica-Oblique", 8.5)
+    c.setFont("Helvetica-Oblique", 9)
     letras = numero_a_letras(datos['valor'])
-    c.drawString(50, y_totales - 52, "La suma de:")
-    c.setFont("Helvetica", 8.5)
-    # Usamos textwrap por si el número en letras es muy largo
-    lineas_letras = textwrap.wrap(letras, width=100)
-    c.drawString(100, y_totales - 52, lineas_letras[0])
+    
+    # Movemos el texto para que quede alineado con el borde de la tabla (X=50)
+    c.drawString(55, y_totales - 55, "La suma de:")
+    c.setFont("Helvetica", 9)
+    lineas_letras = textwrap.wrap(letras, width=95)
+    c.drawString(115, y_totales - 55, lineas_letras[0])
     if len(lineas_letras) > 1:
-        c.drawString(100, y_totales - 62, lineas_letras[1])
+        c.drawString(115, y_totales - 67, lineas_letras[1])
 
     # --- FIRMA ---
     c.setFillColor(colors.black)
     c.setStrokeColor(colors.black)
-    c.line(50, 120, 250, 120) # Línea de firma
+    c.line(50, 120, 250, 120) 
     
     c.setFont("Helvetica-Bold", 9)
     c.drawString(50, 105, NOMBRE_COBRADOR)
@@ -242,10 +242,7 @@ if submit:
             "valor": valor
         }
         
-        # Generar PDF
         pdf_bytes = generar_pdf_cuenta(datos, numero_actual)
-        
-        # Actualizar contador
         incrementar_contador(numero_actual)
         
         st.success(f"✅ Cuenta de cobro N° {numero_actual:03d} generada con éxito.")
