@@ -107,39 +107,37 @@ def generar_pdf_cotizacion(items, total_neto, numero_cot):
 
     pdf.set_text_color(0, 0, 0)
     pdf.set_draw_color(200, 200, 200)
-    pdf.set_font("Arial", "", 7)
     
     for i, item in enumerate(items, start=1):
-        # 1. Limpiamos el texto de tildes para evitar errores
         texto_limpio = item['descripcion'].replace('á','a').replace('é','e').replace('í','i').replace('ó','o').replace('ú','u').replace('ñ','n')
-        
-        # 2. Separamos por líneas y limpiamos guiones extra
         lineas = [l.strip().lstrip('-').strip() for l in texto_limpio.split('\n') if l.strip()]
         
-        # 3. AHORA CALCULAMOS EL ALTO REAL: 5mm por cada material + margen
-        altura_fila = max(10, (len(lineas) * 5) + 2) 
+        # Calculamos la altura exacta: 5mm por cada línea + margen
+        altura_fila = max(8, (len(lineas) * 5) + 2) 
         
-        # Guardamos coordenadas iniciales exactas
         x_inicial = 12
         y_inicial = pdf.get_y()
 
-        # 4. Escribimos el número de la fila (centrado verticalmente usando altura_fila)
+        # 1. Escribimos la celda del número
         pdf.set_xy(x_inicial, y_inicial)
+        pdf.set_font("Arial", "", 8)
         pdf.cell(10, altura_fila, str(i), border=1, align="C")
         
-        # 5. Escribimos el recuadro de la descripción vacío (con su borde)
+        # 2. Escribimos la celda de descripción vacía
         pdf.cell(88, altura_fila, "", border=1)
         
-        # 6. Nos movemos DENTRO del recuadro para escribir la lista
-        pdf.set_xy(x_inicial + 12, y_inicial + 2)
-        
+        # 3. Imprimimos el texto DENTRO de la celda
+        pdf.set_xy(x_inicial + 12, y_inicial + 2) # Margen interno
+        pdf.set_font("Arial", "", 7)
         for linea in lineas:
             pdf.cell(4, 5, "-", align="C") 
-            # Escribimos la línea. Al ponerle new_y="NEXT", baja automáticamente 5mm
-            pdf.cell(0, 5, linea, new_x="LMARGIN", new_y="NEXT")
+            # Escribimos solo el texto, sin usar new_y para que no salte de celda
+            pdf.cell(70, 5, linea) 
+            pdf.ln(5) # Bajamos 5mm manualmente para la siguiente línea
                 
-        # 7. Volvemos a la posición Y inicial de la fila para escribir las otras columnas
+        # 4. Volvemos a la posición inicial para las demás columnas
         pdf.set_xy(x_inicial + 98, y_inicial)
+        pdf.set_font("Arial", "", 7)
         pdf.cell(12, altura_fila, str(item['cantidad']), border=1, align="C")
         pdf.cell(18, altura_fila, item['unidad'], border=1, align="C")
         pdf.cell(22, altura_fila, f"${item['precio']:,.0f}".replace(",", "."), border=1, align="R")
