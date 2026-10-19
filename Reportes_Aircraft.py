@@ -82,39 +82,39 @@ def generar_pdf_reporte(datos, numero_reporte):
         fecha_actual = fecha_actual.replace(k, v)
     c.drawCentredString(width - 140, height - 105, f"Fecha: {fecha_actual}")
 
-    # --- DATOS DEL CLIENTE Y EQUIPO ---
+    # --- DATOS DEL CLIENTE Y EQUIPO (Perfectamente Alineados) ---
+    y_seccion = height - 165 
+    
+    # Títulos
     c.setFont("Helvetica-Bold", 10)
     c.setFillColor(colors.HexColor("#1e50b4"))
-    c.drawString(40, height - 170, "DATOS DEL CLIENTE")
+    c.drawString(40, y_seccion, "DATOS DEL CLIENTE")
+    c.drawString(310, y_seccion, "DATOS DEL EQUIPO")
     
+    # Datos Cliente
     c.setFont("Helvetica", 9)
     c.setFillColor(colors.black)
-    c.drawString(40, height - 185, f"Nombre: {datos['cliente_nombre']}")
-    c.drawString(40, height - 197, f"Teléfono: {datos['cliente_telefono']}")
-    c.drawString(40, height - 209, f"Dirección: {datos['cliente_direccion']}")
+    c.drawString(40, y_seccion - 15, f"Nombre: {datos['cliente_nombre']}")
+    c.drawString(40, y_seccion - 27, f"Teléfono: {datos['cliente_telefono']}")
+    c.drawString(40, y_seccion - 39, f"Dirección: {datos['cliente_direccion']}")
     
-    c.setFont("Helvetica-Bold", 10)
-    c.setFillColor(colors.HexColor("#1e50b4"))
-    c.drawString(300, height - 170, "DATOS DEL EQUIPO")
-    
-    c.setFont("Helvetica", 9)
-    c.setFillColor(colors.black)
-    c.drawString(300, height - 185, f"Tipo: {datos['equipo_tipo']}")
-    c.drawString(300, height - 197, f"Marca/Modelo: {datos['equipo_marca']}")
-    c.drawString(300, height - 209, f"Serial: {datos['equipo_serial']}")
+    # Datos Equipo
+    c.drawString(310, y_seccion - 15, f"Tipo: {datos['equipo_tipo']}")
+    c.drawString(310, y_seccion - 27, f"Marca/Modelo: {datos['equipo_marca']}")
+    c.drawString(310, y_seccion - 39, f"Serial: {datos['equipo_serial']}")
 
-    # --- DIAGNÓSTICO Y TRABAJO (Tablas de texto) ---
+    # --- DIAGNÓSTICO Y TRABAJO ---
     # 1. Diagnóstico
     c.setFont("Helvetica-Bold", 10)
     c.setFillColor(colors.HexColor("#1e50b4"))
-    c.drawString(40, height - 240, "DIAGNÓSTICO INICIAL")
+    c.drawString(40, y_seccion - 75, "DIAGNÓSTICO INICIAL")
     
     texto_diag = datos['diagnostico'].replace('á','a').replace('é','e').replace('í','i').replace('ó','o').replace('ú','u').replace('ñ','n')
     lineas_diag = textwrap.wrap(texto_diag, width=110)
     
     c.setFont("Helvetica", 9)
     c.setFillColor(colors.black)
-    y_diag = height - 255
+    y_diag = y_seccion - 90
     for linea in lineas_diag:
         c.drawString(40, y_diag, linea)
         y_diag -= 13
@@ -150,7 +150,6 @@ def generar_pdf_reporte(datos, numero_reporte):
         y_recom -= 13
 
     # --- FIRMAS ---
-    # Las ponemos fijas en la parte de abajo de la hoja para que no se muevan
     y_firmas = 120
     
     c.setStrokeColor(colors.black)
@@ -240,4 +239,4 @@ if submit:
             data=pdf_bytes,
             file_name=f"Reporte_Tecnico_{numero_actual:03d}.pdf",
             mime="application/pdf"
-  )
+        )
