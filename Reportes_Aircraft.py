@@ -4,9 +4,6 @@ from datetime import datetime
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
-from reportlab.platypus import Table, TableStyle, Paragraph
-from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib.enums import TA_LEFT
 import textwrap
 
 # --- CONFIGURACIÓN DE LA EMPRESA ---
@@ -82,39 +79,70 @@ def generar_pdf_reporte(datos, numero_reporte):
         fecha_actual = fecha_actual.replace(k, v)
     c.drawCentredString(width - 140, height - 105, f"Fecha: {fecha_actual}")
 
-    # --- DATOS DEL CLIENTE Y EQUIPO (Perfectamente Alineados) ---
-    y_seccion = height - 165 
-    
-    # Títulos
+    # =======================================================
+    # NUEVO DISEÑO: RECUADROS CON BARRA AZUL (DATOS)
+    # =======================================================
+    y_base_datos = height - 165 # Punto de partida
+    alto_caja = 65 # Altura fija para que ambos lados queden perfectos
+
+    # --- CAJA IZQUIERDA (CLIENTE) ---
+    # Fondo gris
+    c.setFillColor(colors.HexColor("#f5f5f5"))
+    c.rect(40, y_base_datos - alto_caja, 250, alto_caja, fill=1, stroke=0)
+    # Barra azul
+    c.setFillColor(colors.HexColor("#1e50b4"))
+    c.rect(40, y_base_datos - alto_caja, 4, alto_caja, fill=1, stroke=0)
+
+    # Textos Cliente
     c.setFont("Helvetica-Bold", 10)
     c.setFillColor(colors.HexColor("#1e50b4"))
-    c.drawString(40, y_seccion, "DATOS DEL CLIENTE")
-    c.drawString(310, y_seccion, "DATOS DEL EQUIPO")
+    c.drawString(50, y_base_datos - 15, "DATOS DEL CLIENTE")
     
-    # Datos Cliente
-    c.setFont("Helvetica", 9)
+    c.setFont("Helvetica", 8.5)
     c.setFillColor(colors.black)
-    c.drawString(40, y_seccion - 15, f"Nombre: {datos['cliente_nombre']}")
-    c.drawString(40, y_seccion - 27, f"Teléfono: {datos['cliente_telefono']}")
-    c.drawString(40, y_seccion - 39, f"Dirección: {datos['cliente_direccion']}")
+    c.drawString(50, y_base_datos - 28, f"Nombre: {datos['cliente_nombre']}")
+    c.drawString(50, y_base_datos - 40, f"Teléfono: {datos['cliente_telefono']}")
+    # Si la dirección es muy larga, la cortamos un poco para que no se salga de la caja
+    dir_corta = datos['cliente_direccion'][:40] + "..." if len(datos['cliente_direccion']) > 40 else datos['cliente_direccion']
+    c.drawString(50, y_base_datos - 52, f"Dirección: {dir_corta}")
+
+
+    # --- CAJA DERECHA (EQUIPO) ---
+    x_derecha = 310
+    # Fondo gris
+    c.setFillColor(colors.HexColor("#f5f5f5"))
+    c.rect(x_derecha, y_base_datos - alto_caja, 260, alto_caja, fill=1, stroke=0)
+    # Barra azul
+    c.setFillColor(colors.HexColor("#1e50b4"))
+    c.rect(x_derecha, y_base_datos - alto_caja, 4, alto_caja, fill=1, stroke=0)
+
+    # Textos Equipo
+    c.setFont("Helvetica-Bold", 10)
+    c.setFillColor(colors.HexColor("#1e50b4"))
+    c.drawString(x_derecha + 10, y_base_datos - 15, "DATOS DEL EQUIPO")
     
-    # Datos Equipo
-    c.drawString(310, y_seccion - 15, f"Tipo: {datos['equipo_tipo']}")
-    c.drawString(310, y_seccion - 27, f"Marca/Modelo: {datos['equipo_marca']}")
-    c.drawString(310, y_seccion - 39, f"Serial: {datos['equipo_serial']}")
+    c.setFont("Helvetica", 8.5)
+    c.setFillColor(colors.black)
+    c.drawString(x_derecha + 10, y_base_datos - 28, f"Tipo: {datos['equipo_tipo']}")
+    c.drawString(x_derecha + 10, y_base_datos - 40, f"Marca/Modelo: {datos['equipo_marca']}")
+    c.drawString(x_derecha + 10, y_base_datos - 52, f"Serial: {datos['equipo_serial']}")
+
+    # =======================================================
 
     # --- DIAGNÓSTICO Y TRABAJO ---
+    y_seccion_texto = y_base_datos - alto_caja - 30 # Empezamos debajo de las cajas
+
     # 1. Diagnóstico
     c.setFont("Helvetica-Bold", 10)
     c.setFillColor(colors.HexColor("#1e50b4"))
-    c.drawString(40, y_seccion - 75, "DIAGNÓSTICO INICIAL")
+    c.drawString(40, y_seccion_texto, "DIAGNÓSTICO INICIAL")
     
     texto_diag = datos['diagnostico'].replace('á','a').replace('é','e').replace('í','i').replace('ó','o').replace('ú','u').replace('ñ','n')
     lineas_diag = textwrap.wrap(texto_diag, width=110)
     
     c.setFont("Helvetica", 9)
     c.setFillColor(colors.black)
-    y_diag = y_seccion - 90
+    y_diag = y_seccion_texto - 15
     for linea in lineas_diag:
         c.drawString(40, y_diag, linea)
         y_diag -= 13
@@ -122,14 +150,14 @@ def generar_pdf_reporte(datos, numero_reporte):
     # 2. Trabajo Realizado
     c.setFont("Helvetica-Bold", 10)
     c.setFillColor(colors.HexColor("#1e50b4"))
-    c.drawString(40, y_diag - 15, "TRABAJO REALIZADO")
+    c.drawString(40, y_diag - 10, "TRABAJO REALIZADO")
     
     texto_trabajo = datos['trabajo'].replace('á','a').replace('é','e').replace('í','i').replace('ó','o').replace('ú','u').replace('ñ','n')
     lineas_trabajo = textwrap.wrap(texto_trabajo, width=110)
     
     c.setFont("Helvetica", 9)
     c.setFillColor(colors.black)
-    y_trabajo = y_diag - 30
+    y_trabajo = y_diag - 25
     for linea in lineas_trabajo:
         c.drawString(40, y_trabajo, linea)
         y_trabajo -= 13
@@ -137,14 +165,14 @@ def generar_pdf_reporte(datos, numero_reporte):
     # --- RECOMENDACIONES ---
     c.setFont("Helvetica-Bold", 10)
     c.setFillColor(colors.HexColor("#1e50b4"))
-    c.drawString(40, y_trabajo - 15, "RECOMENDACIONES")
+    c.drawString(40, y_trabajo - 10, "RECOMENDACIONES")
     
     texto_recom = datos['recomendaciones'].replace('á','a').replace('é','e').replace('í','i').replace('ó','o').replace('ú','u').replace('ñ','n')
     lineas_recom = textwrap.wrap(texto_recom, width=110)
     
     c.setFont("Helvetica", 9)
     c.setFillColor(colors.black)
-    y_recom = y_trabajo - 30
+    y_recom = y_trabajo - 25
     for linea in lineas_recom:
         c.drawString(40, y_recom, linea)
         y_recom -= 13
