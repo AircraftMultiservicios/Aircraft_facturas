@@ -13,7 +13,6 @@ import io
 # ==========================================
 st.set_page_config(page_title="Facturación - Aircraft Multiservicios", page_icon="📄", layout="wide")
 
-# Colores extraídos de tu imagen
 AZUL_CORPORATIVO = colors.HexColor("#1F4E79")
 AZUL_BARRA = colors.HexColor("#2E5C8A")
 GRIS_FONDO = colors.HexColor("#F2F2F2")
@@ -23,10 +22,8 @@ NEGRO = colors.HexColor("#000000")
 # FUNCIÓN PARA DIBUJAR EL PIE DE PÁGINA (FIRMAS)
 # ==========================================
 def dibujar_pie_pagina(canvas, doc, datos_cliente):
-    # Guardamos el estado del canvas
     canvas.saveState()
     
-    # Estilos para el pie de página
     estilo_texto = ParagraphStyle(
         'TextoPie', parent=getSampleStyleSheet()['Normal'], fontName='Helvetica', fontSize=9, textColor=NEGRO
     )
@@ -34,28 +31,30 @@ def dibujar_pie_pagina(canvas, doc, datos_cliente):
     firma_tecnico = Paragraph("<b>Técnico / Emisor</b><br/>AIRCRAFT MULTISERVICIOS", estilo_texto)
     firma_cliente = Paragraph(f"<b>Firma del Cliente</b><br/>C.C. {datos_cliente['cedula']}", estilo_texto)
 
-    # Creamos la tabla para las firmas (con filas vacías para las líneas)
-    # Fila 0: vacía (para la línea)
-    # Fila 1: el texto
-    tabla_firmas = Table([["", ""], [firma_tecnico, firma_cliente]], colWidths=[3.5*inch, 3.5*inch])
+    # Creamos una tabla de 3 columnas: [Firma Técnico] [Espacio en blanco] [Firma Cliente]
+    # El espacio en blanco mide 1 pulgada, asegurando que se vean separadas.
+    tabla_firmas = Table([["", "", ""], [firma_tecnico, "", firma_cliente]], colWidths=[3.0*inch, 1.0*inch, 3.0*inch])
+    
     tabla_firmas.setStyle(TableStyle([
-        ('LINEABOVE', (0,0), (0,0), 1, colors.black), # Línea negra independiente para el técnico
-        ('LINEABOVE', (1,0), (1,0), 1, colors.black), # Línea negra independiente para el cliente
+        # Línea negra independiente para el técnico (columna 0)
+        ('LINEABOVE', (0,0), (0,0), 1, colors.black), 
+        # Línea negra independiente para el cliente (columna 2)
+        ('LINEABOVE', (2,0), (2,0), 1, colors.black),
+        
         ('VALIGN', (0,0), (-1,-1), 'TOP'),
         ('ALIGN', (0,0), (-1,-1), 'LEFT'),
-        ('LEFTPADDING', (0,0), (-1,-1), 0),
+        ('TOPPADDING', (0,0), (-1,-1), 5),
+        ('BOTTOMPADDING', (0,0), (-1,0), 5), # Espacio entre línea y texto
     ]))
     
-    # Calculamos la posición (Y) para que quede al pie de la página (aprox 1 pulgada del fondo)
-    ancho, alto = letter
-    y_pos = 1.0 * inch 
-    
-    # Dibujamos la tabla de firmas en el canvas
+    ancho_pagina, alto_pagina = letter
     ancho_tabla, alto_tabla = tabla_firmas.wrapOn(canvas, doc.width, doc.height)
-    # Lo dibujamos alineado a los márgenes de la hoja
-    tabla_firmas.drawOn(canvas, doc.leftMargin, y_pos)
     
-    # Restauramos el estado
+    y_pos = 1.2 * inch 
+    # Centramos la tabla completa en la página
+    x_pos = doc.leftMargin + (doc.width - ancho_tabla) / 2
+    
+    tabla_firmas.drawOn(canvas, x_pos, y_pos)
     canvas.restoreState()
 
 # ==========================================
@@ -63,21 +62,21 @@ def dibujar_pie_pagina(canvas, doc, datos_cliente):
 # ==========================================
 def generar_pdf(datos_empresa, datos_factura, datos_cliente, items, totales):
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=100) # Aumentamos bottomMargin
+    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=100)
     elements = []
     
-    # Estilos de texto
     styles = getSampleStyleSheet()
     estilo_subtitulo = ParagraphStyle('Sub', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=10, textColor=NEGRO, alignment=1)
     estilo_texto = ParagraphStyle('Texto', parent=styles['Normal'], fontName='Helvetica', fontSize=9, textColor=NEGRO)
     estilo_seccion = ParagraphStyle('Seccion', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=11, textColor=AZUL_CORPORATIVO, spaceAfter=5)
 
-    # --- 1. CABECERA (Logo + Datos Empresa + Cuadro Factura) ---
+    # --- 1. CABECERA ---
     try:
         logo = Image("logo.png", width=0.9*inch, height=0.9*inch)
     except:
         logo = Paragraph("[Falta logo.png]", estilo_texto)
 
+    # Se ve igual a tu imagen original: Nombre en dos líneas
     texto_empresa = f"""
     <font color="#1F4E79" size="16"><b>{datos_empresa['nombre']}</b></font><br/>
     <font size="8">{datos_empresa['descripcion']}</font><br/>
@@ -105,7 +104,7 @@ def generar_pdf(datos_empresa, datos_factura, datos_cliente, items, totales):
     elements.append(tabla_cabecera)
     elements.append(Spacer(1, 20))
 
-    # --- 2. DATOS DEL CLIENTE Y FACTURA ---
+    # --- 2. DATOS DEL CLIENTE Y FACTURA (CORREGIDO CON ESPACIO EN BLANCO) ---
     texto_cliente = f"""
     <font color="#1F4E79"><b>DATOS DEL CLIENTE</b></font><br/>
     <font size="9">Nombre: {datos_cliente['nombre']}</font><br/>
@@ -122,12 +121,15 @@ def generar_pdf(datos_empresa, datos_factura, datos_cliente, items, totales):
     """
     col_pago = Paragraph(texto_pago, estilo_texto)
 
-    tabla_datos = Table([[col_cliente, col_pago]], colWidths=[3.75*inch, 3.75*inch])
+    # Agregamos una columna central vacía ("") de 0.3 pulgadas para separar los recuadros
+    # Los recuadros pasan a medir 3.6 pulgadas cada uno (3.6 + 0.3 + 3.6 = 7.5 total)
+    tabla_datos = Table([[col_cliente, "", col_pago]], colWidths=[3.6*inch, 0.3*inch, 3.6*inch])
+    
     tabla_datos.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (0,0), GRIS_FONDO),
-        ('BACKGROUND', (1,0), (1,0), GRIS_FONDO),
-        ('LINEBEFORE', (0,0), (0,0), 3, AZUL_BARRA),
-        ('LINEBEFORE', (1,0), (1,0), 3, AZUL_BARRA),
+        ('BACKGROUND', (0,0), (0,0), GRIS_FONDO), # Fondo gris cliente
+        ('BACKGROUND', (2,0), (2,0), GRIS_FONDO), # Fondo gris pago
+        ('LINEBEFORE', (0,0), (0,0), 3, AZUL_BARRA), # Barra azul cliente
+        ('LINEBEFORE', (2,0), (2,0), 3, AZUL_BARRA), # Barra azul pago
         ('VALIGN', (0,0), (-1,-1), 'TOP'),
         ('LEFTPADDING', (0,0), (-1,-1), 10),
         ('RIGHTPADDING', (0,0), (-1,-1), 10),
@@ -154,7 +156,7 @@ def generar_pdf(datos_empresa, datos_factura, datos_cliente, items, totales):
     data_items.append(["", "", "IVA (19%):", f"${totales['iva']:,.2f}"])
     data_items.append(["", "", "TOTAL:", f"${totales['total']:,.2f}"])
 
-    tabla_items = Table(data_items, colWidths=[0.6*inch, 4.0*inch, 1.4*inch, 1.5*inch])
+    tabla_items = Table(data_items, colWidths=[0.6*inch, 4.3*inch, 1.2*inch, 1.4*inch])
     tabla_items.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,0), AZUL_CORPORATIVO),
         ('TEXTCOLOR', (0,0), (-1,0), colors.white),
@@ -172,12 +174,10 @@ def generar_pdf(datos_empresa, datos_factura, datos_cliente, items, totales):
     ]))
     elements.append(tabla_items)
 
-    # --- 4. CONSTRUCCIÓN DEL PDF CON EL PIE DE PÁGINA (FIRMAS) ---
-    # Usamos una función lambda para pasarle los datos del cliente a la función del pie de página
+    # --- 4. CONSTRUCCIÓN DEL PDF CON EL PIE DE PÁGINA ---
     def on_page(canvas, doc):
         dibujar_pie_pagina(canvas, doc, datos_cliente)
 
-    # Al construir el documento, le indicamos que ejecute "on_page" en cada página
     doc.build(elements, onFirstPage=on_page, onLaterPages=on_page)
     
     buffer.seek(0)
