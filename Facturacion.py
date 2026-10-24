@@ -31,7 +31,7 @@ def generar_pdf(datos_empresa, datos_factura, datos_cliente, items, totales):
     styles = getSampleStyleSheet()
     
     estilo_titulo = ParagraphStyle(
-        'Titulo', parent=styles['Heading1'], fontName='Helvetica-Bold', fontSize=16, textColor=AZUL_CORPORATIVO, alignment=1 # Centrado
+        'Titulo', parent=styles['Heading1'], fontName='Helvetica-Bold', fontSize=16, textColor=AZUL_CORPORATIVO, alignment=1
     )
     estilo_subtitulo = ParagraphStyle(
         'Sub', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=10, textColor=NEGRO, alignment=1
@@ -44,7 +44,6 @@ def generar_pdf(datos_empresa, datos_factura, datos_cliente, items, totales):
     )
 
     # --- 1. CABECERA (Logo + Datos Empresa + Cuadro Factura) ---
-    # Nota: Asegúrate de tener "logo.png" en la misma carpeta
     try:
         logo = Image("logo.png", width=1.2*inch, height=1.2*inch)
     except:
@@ -59,7 +58,7 @@ def generar_pdf(datos_empresa, datos_factura, datos_cliente, items, totales):
     """
     col_empresa = Paragraph(texto_empresa, estilo_texto)
 
-    # Cuadro de la Factura (simulando el cuadro "REPORTE TÉCNICO")
+    # Cuadro de la Factura
     info_factura = f"""
     <font size="12"><b>FACTURA DE VENTA</b></font><br/><br/>
     <font size="9">Número: <b>{datos_factura['numero']}</b></font><br/>
@@ -79,7 +78,7 @@ def generar_pdf(datos_empresa, datos_factura, datos_cliente, items, totales):
     elements.append(tabla_cabecera)
     elements.append(Spacer(1, 20))
 
-    # --- 2. DATOS DEL CLIENTE Y FACTURA (Simulando los dos cuadros grises) ---
+    # --- 2. DATOS DEL CLIENTE Y FACTURA ---
     texto_cliente = f"""
     <font color="#1F4E79"><b>DATOS DEL CLIENTE</b></font><br/>
     <font size="9">Nombre: {datos_cliente['nombre']}</font><br/>
@@ -100,8 +99,8 @@ def generar_pdf(datos_empresa, datos_factura, datos_cliente, items, totales):
     tabla_datos.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (0,0), GRIS_FONDO),
         ('BACKGROUND', (1,0), (1,0), GRIS_FONDO),
-        ('LINEBEFORE', (0,0), (0,0), 3, AZUL_BARRA), # Línea azul izquierda
-        ('LINEBEFORE', (1,0), (1,0), 3, AZUL_BARRA), # Línea azul izquierda
+        ('LINEBEFORE', (0,0), (0,0), 3, AZUL_BARRA),
+        ('LINEBEFORE', (1,0), (1,0), 3, AZUL_BARRA),
         ('VALIGN', (0,0), (-1,-1), 'TOP'),
         ('LEFTPADDING', (0,0), (-1,-1), 10),
         ('RIGHTPADDING', (0,0), (-1,-1), 10),
@@ -114,7 +113,6 @@ def generar_pdf(datos_empresa, datos_factura, datos_cliente, items, totales):
     # --- 3. TABLA DE ITEMS ---
     elements.append(Paragraph("DETALLE DE LA FACTURA", estilo_seccion))
     
-    # Encabezados de la tabla
     data_items = [["Cant.", "Descripción", "V. Unitario", "Total"]]
     
     for item in items:
@@ -125,7 +123,6 @@ def generar_pdf(datos_empresa, datos_factura, datos_cliente, items, totales):
             f"${item['total']:,.2f}"
         ])
     
-    # Agregar filas de totales
     data_items.append(["", "", "Subtotal:", f"${totales['subtotal']:,.2f}"])
     data_items.append(["", "", "IVA (19%):", f"${totales['iva']:,.2f}"])
     data_items.append(["", "", "TOTAL:", f"${totales['total']:,.2f}"])
@@ -139,17 +136,17 @@ def generar_pdf(datos_empresa, datos_factura, datos_cliente, items, totales):
         ('ALIGN', (0,0), (0,-1), 'CENTER'),
         ('FONTNAME', (0,1), (-1,-4), 'Helvetica'),
         ('FONTSIZE', (0,0), (-1,-1), 9),
-        ('LINEBELOW', (0,0), (-1,-4), 0.5, colors.grey), # Líneas entre items
-        ('LINEABOVE', (0,-3), (-1,-3), 1, AZUL_CORPORATIVO), # Línea antes de totales
-        ('FONTNAME', (2,-3), (2,-1), 'Helvetica-Bold'), # Bold en subtotales
-        ('FONTNAME', (2,-1), (-1,-1), 'Helvetica-Bold'), # Bold en TOTAL
+        ('LINEBELOW', (0,0), (-1,-4), 0.5, colors.grey),
+        ('LINEABOVE', (0,-3), (-1,-3), 1, AZUL_CORPORATIVO),
+        ('FONTNAME', (2,-3), (2,-1), 'Helvetica-Bold'),
+        ('FONTNAME', (2,-1), (-1,-1), 'Helvetica-Bold'),
         ('FONTSIZE', (2,-1), (-1,-1), 11),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
     ]))
     elements.append(tabla_items)
     elements.append(Spacer(1, 40))
 
-    # --- 4. FIRMAS (Simulando el pie de página de tu imagen) ---
+    # --- 4. FIRMAS ---
     linea_firma = "_" * 35
     texto_firmas = f"""
     <br/><br/>
@@ -193,19 +190,20 @@ with st.container():
         factura_fecha = st.date_input("Fecha", datetime.now())
         metodo_pago = st.selectbox("Método de Pago", ["Efectivo", "Transferencia", "Tarjeta"])
 
-# 3. Manejador de Ítems dinámico
+# 3. Manejador de Ítems dinámico (CORREGIDO AQUÍ: Ahora usa 'factura_items')
 st.subheader("Ítems de la Factura")
-if "items" not in st.session_state:
-    st.session_state.items = [{"cantidad": 1, "descripcion": "Mantenimiento preventivo aire acondicionado", "precio_unitario": 150000.0}]
+if "factura_items" not in st.session_state:
+    st.session_state.factura_items = [{"cantidad": 1, "descripcion": "Mantenimiento preventivo aire acondicionado", "precio_unitario": 150000.0}]
 
 # Función para agregar/eliminar filas
 def agregar_item():
-    st.session_state.items.append({"cantidad": 1, "descripcion": "", "precio_unitario": 0.0})
+    st.session_state.factura_items.append({"cantidad": 1, "descripcion": "", "precio_unitario": 0.0})
+
 def eliminar_item(index):
-    st.session_state.items.pop(index)
+    st.session_state.factura_items.pop(index)
 
 # Mostrar los ítems en pantalla
-for i, item in enumerate(st.session_state.items):
+for i, item in enumerate(st.session_state.factura_items):
     c1, c2, c3, c4 = st.columns([1, 4, 2, 1])
     item['cantidad'] = c1.number_input("Cant.", min_value=1, value=item['cantidad'], key=f"qty_{i}")
     item['descripcion'] = c2.text_input("Descripción", value=item['descripcion'], key=f"desc_{i}")
@@ -221,7 +219,7 @@ col_btn1, col_btn2 = st.columns([1, 5])
 col_btn1.button("➕ Agregar Ítem", on_click=agregar_item)
 
 # Cálculos de totales
-subtotal = sum(item['total'] for item in st.session_state.items)
+subtotal = sum(item['total'] for item in st.session_state.factura_items)
 iva = subtotal * 0.19 # 19% IVA Colombia
 total = subtotal + iva
 
@@ -246,7 +244,7 @@ if st.button("📥 Generar y Descargar PDF", type="primary"):
         "total": total
     }
     
-    pdf_buffer = generar_pdf(datos_empresa, datos_factura, datos_cliente, st.session_state.items, totales)
+    pdf_buffer = generar_pdf(datos_empresa, datos_factura, datos_cliente, st.session_state.factura_items, totales)
     
     st.download_button(
         label="⬇️ Descargar Factura en PDF",
