@@ -45,7 +45,8 @@ def generar_pdf(datos_empresa, datos_factura, datos_cliente, items, totales):
 
     # --- 1. CABECERA (Logo + Datos Empresa + Cuadro Factura) ---
     try:
-        logo = Image("logo.png", width=1.2*inch, height=1.2*inch)
+        # Logo ajustado a un tamaño más armónico (0.9 pulgadas)
+        logo = Image("logo.png", width=0.9*inch, height=0.9*inch)
     except:
         logo = Paragraph("[Falta logo.png]", estilo_texto)
 
@@ -66,8 +67,8 @@ def generar_pdf(datos_empresa, datos_factura, datos_cliente, items, totales):
     """
     col_factura = Paragraph(info_factura, estilo_subtitulo)
     
-    # Tabla de cabecera (3 columnas)
-    tabla_cabecera = Table([[logo, col_empresa, col_factura]], colWidths=[1.2*inch, 3.8*inch, 2.5*inch])
+    # Tabla de cabecera (Ajustamos anchos: logo un poco más angosto)
+    tabla_cabecera = Table([[logo, col_empresa, col_factura]], colWidths=[1.0*inch, 4.0*inch, 2.5*inch])
     tabla_cabecera.setStyle(TableStyle([
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('BOX', (2,0), (2,0), 1, AZUL_CORPORATIVO), # Borde del cuadro de factura
@@ -144,17 +145,24 @@ def generar_pdf(datos_empresa, datos_factura, datos_cliente, items, totales):
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
     ]))
     elements.append(tabla_items)
-    elements.append(Spacer(1, 40))
+    elements.append(Spacer(1, 50)) # Espacio antes de las firmas
 
-    # --- 4. FIRMAS ---
-    linea_firma = "_" * 35
-    texto_firmas = f"""
-    <br/><br/>
-    {linea_firma} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {linea_firma}<br/>
-    <b>Técnico / Emisor</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>Firma del Cliente</b><br/>
-    {datos_empresa['nombre']} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; C.C. {datos_cliente['cedula']}
-    """
-    elements.append(Paragraph(texto_firmas, estilo_texto))
+    # --- 4. FIRMAS (Alineación perfecta con tabla) ---
+    firma_tecnico = Paragraph("<b>Técnico / Emisor</b><br/>AIRCRAFT MULTISERVICIOS", estilo_texto)
+    firma_cliente = Paragraph(f"<b>Firma del Cliente</b><br/>C.C. {datos_cliente['cedula']}", estilo_texto)
+    
+    # Tabla invisible de 2 columnas solo para las líneas de firma
+    tabla_firmas = Table([["", ""], [firma_tecnico, firma_cliente]], colWidths=[3.5*inch, 3.5*inch])
+    tabla_firmas.setStyle(TableStyle([
+        ('LINEABOVE', (0,0), (0,0), 1, colors.black), 
+        ('LINEABOVE', (1,0), (1,0), 1, colors.black),
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+        ('TOPPADDING', (0,0), (-1,-1), 5),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 0),
+    ]))
+    
+    elements.append(tabla_firmas)
 
     # Construir el PDF
     doc.build(elements)
@@ -190,12 +198,11 @@ with st.container():
         factura_fecha = st.date_input("Fecha", datetime.now())
         metodo_pago = st.selectbox("Método de Pago", ["Efectivo", "Transferencia", "Tarjeta"])
 
-# 3. Manejador de Ítems dinámico (CORREGIDO AQUÍ: Ahora usa 'factura_items')
+# 3. Manejador de Ítems dinámico (Usando 'factura_items' para evitar errores)
 st.subheader("Ítems de la Factura")
 if "factura_items" not in st.session_state:
     st.session_state.factura_items = [{"cantidad": 1, "descripcion": "Mantenimiento preventivo aire acondicionado", "precio_unitario": 150000.0}]
 
-# Función para agregar/eliminar filas
 def agregar_item():
     st.session_state.factura_items.append({"cantidad": 1, "descripcion": "", "precio_unitario": 0.0})
 
@@ -220,7 +227,7 @@ col_btn1.button("➕ Agregar Ítem", on_click=agregar_item)
 
 # Cálculos de totales
 subtotal = sum(item['total'] for item in st.session_state.factura_items)
-iva = subtotal * 0.19 # 19% IVA Colombia
+iva = subtotal * 0.19 # 19% IVA
 total = subtotal + iva
 
 st.markdown(f"### Subtotal: ${subtotal:,.2f} | IVA (19%): ${iva:,.2f} | **Total: ${total:,.2f}**")
