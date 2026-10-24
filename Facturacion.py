@@ -14,38 +14,66 @@ import io
 st.set_page_config(page_title="Facturación - Aircraft Multiservicios", page_icon="📄", layout="wide")
 
 # Colores extraídos de tu imagen
-AZUL_CORPORATIVO = colors.HexColor("#1F4E79")  # Azul oscuro del texto y líneas
-AZUL_BARRA = colors.HexColor("#2E5C8A")        # Azul de las barras laterales
-GRIS_FONDO = colors.HexColor("#F2F2F2")        # Gris claro de los cuadros
+AZUL_CORPORATIVO = colors.HexColor("#1F4E79")
+AZUL_BARRA = colors.HexColor("#2E5C8A")
+GRIS_FONDO = colors.HexColor("#F2F2F2")
 NEGRO = colors.HexColor("#000000")
+
+# ==========================================
+# FUNCIÓN PARA DIBUJAR EL PIE DE PÁGINA (FIRMAS)
+# ==========================================
+def dibujar_pie_pagina(canvas, doc, datos_cliente):
+    # Guardamos el estado del canvas
+    canvas.saveState()
+    
+    # Estilos para el pie de página
+    estilo_texto = ParagraphStyle(
+        'TextoPie', parent=getSampleStyleSheet()['Normal'], fontName='Helvetica', fontSize=9, textColor=NEGRO
+    )
+    
+    firma_tecnico = Paragraph("<b>Técnico / Emisor</b><br/>AIRCRAFT MULTISERVICIOS", estilo_texto)
+    firma_cliente = Paragraph(f"<b>Firma del Cliente</b><br/>C.C. {datos_cliente['cedula']}", estilo_texto)
+
+    # Creamos la tabla para las firmas (con filas vacías para las líneas)
+    # Fila 0: vacía (para la línea)
+    # Fila 1: el texto
+    tabla_firmas = Table([["", ""], [firma_tecnico, firma_cliente]], colWidths=[3.5*inch, 3.5*inch])
+    tabla_firmas.setStyle(TableStyle([
+        ('LINEABOVE', (0,0), (0,0), 1, colors.black), # Línea negra independiente para el técnico
+        ('LINEABOVE', (1,0), (1,0), 1, colors.black), # Línea negra independiente para el cliente
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+        ('LEFTPADDING', (0,0), (-1,-1), 0),
+    ]))
+    
+    # Calculamos la posición (Y) para que quede al pie de la página (aprox 1 pulgada del fondo)
+    ancho, alto = letter
+    y_pos = 1.0 * inch 
+    
+    # Dibujamos la tabla de firmas en el canvas
+    ancho_tabla, alto_tabla = tabla_firmas.wrapOn(canvas, doc.width, doc.height)
+    # Lo dibujamos alineado a los márgenes de la hoja
+    tabla_firmas.drawOn(canvas, doc.leftMargin, y_pos)
+    
+    # Restauramos el estado
+    canvas.restoreState()
 
 # ==========================================
 # FUNCIÓN PARA GENERAR EL PDF
 # ==========================================
 def generar_pdf(datos_empresa, datos_factura, datos_cliente, items, totales):
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
+    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=100) # Aumentamos bottomMargin
     elements = []
     
     # Estilos de texto
     styles = getSampleStyleSheet()
-    
-    estilo_titulo = ParagraphStyle(
-        'Titulo', parent=styles['Heading1'], fontName='Helvetica-Bold', fontSize=16, textColor=AZUL_CORPORATIVO, alignment=1
-    )
-    estilo_subtitulo = ParagraphStyle(
-        'Sub', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=10, textColor=NEGRO, alignment=1
-    )
-    estilo_texto = ParagraphStyle(
-        'Texto', parent=styles['Normal'], fontName='Helvetica', fontSize=9, textColor=NEGRO
-    )
-    estilo_seccion = ParagraphStyle(
-        'Seccion', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=11, textColor=AZUL_CORPORATIVO, spaceAfter=5
-    )
+    estilo_subtitulo = ParagraphStyle('Sub', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=10, textColor=NEGRO, alignment=1)
+    estilo_texto = ParagraphStyle('Texto', parent=styles['Normal'], fontName='Helvetica', fontSize=9, textColor=NEGRO)
+    estilo_seccion = ParagraphStyle('Seccion', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=11, textColor=AZUL_CORPORATIVO, spaceAfter=5)
 
     # --- 1. CABECERA (Logo + Datos Empresa + Cuadro Factura) ---
     try:
-        # Logo ajustado a un tamaño más armónico (0.9 pulgadas)
         logo = Image("logo.png", width=0.9*inch, height=0.9*inch)
     except:
         logo = Paragraph("[Falta logo.png]", estilo_texto)
@@ -59,7 +87,6 @@ def generar_pdf(datos_empresa, datos_factura, datos_cliente, items, totales):
     """
     col_empresa = Paragraph(texto_empresa, estilo_texto)
 
-    # Cuadro de la Factura
     info_factura = f"""
     <font size="12"><b>FACTURA DE VENTA</b></font><br/><br/>
     <font size="9">Número: <b>{datos_factura['numero']}</b></font><br/>
@@ -67,11 +94,10 @@ def generar_pdf(datos_empresa, datos_factura, datos_cliente, items, totales):
     """
     col_factura = Paragraph(info_factura, estilo_subtitulo)
     
-    # Tabla de cabecera (Ajustamos anchos: logo un poco más angosto)
     tabla_cabecera = Table([[logo, col_empresa, col_factura]], colWidths=[1.0*inch, 4.0*inch, 2.5*inch])
     tabla_cabecera.setStyle(TableStyle([
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('BOX', (2,0), (2,0), 1, AZUL_CORPORATIVO), # Borde del cuadro de factura
+        ('BOX', (2,0), (2,0), 1, AZUL_CORPORATIVO),
         ('ALIGN', (2,0), (2,0), 'CENTER'),
         ('TOPPADDING', (2,0), (2,0), 10),
         ('BOTTOMPADDING', (2,0), (2,0), 10),
@@ -145,27 +171,15 @@ def generar_pdf(datos_empresa, datos_factura, datos_cliente, items, totales):
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
     ]))
     elements.append(tabla_items)
-    elements.append(Spacer(1, 50)) # Espacio antes de las firmas
 
-    # --- 4. FIRMAS (Alineación perfecta con tabla) ---
-    firma_tecnico = Paragraph("<b>Técnico / Emisor</b><br/>AIRCRAFT MULTISERVICIOS", estilo_texto)
-    firma_cliente = Paragraph(f"<b>Firma del Cliente</b><br/>C.C. {datos_cliente['cedula']}", estilo_texto)
-    
-    # Tabla invisible de 2 columnas solo para las líneas de firma
-    tabla_firmas = Table([["", ""], [firma_tecnico, firma_cliente]], colWidths=[3.5*inch, 3.5*inch])
-    tabla_firmas.setStyle(TableStyle([
-        ('LINEABOVE', (0,0), (0,0), 1, colors.black), 
-        ('LINEABOVE', (1,0), (1,0), 1, colors.black),
-        ('VALIGN', (0,0), (-1,-1), 'TOP'),
-        ('ALIGN', (0,0), (-1,-1), 'LEFT'),
-        ('TOPPADDING', (0,0), (-1,-1), 5),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 0),
-    ]))
-    
-    elements.append(tabla_firmas)
+    # --- 4. CONSTRUCCIÓN DEL PDF CON EL PIE DE PÁGINA (FIRMAS) ---
+    # Usamos una función lambda para pasarle los datos del cliente a la función del pie de página
+    def on_page(canvas, doc):
+        dibujar_pie_pagina(canvas, doc, datos_cliente)
 
-    # Construir el PDF
-    doc.build(elements)
+    # Al construir el documento, le indicamos que ejecute "on_page" en cada página
+    doc.build(elements, onFirstPage=on_page, onLaterPages=on_page)
+    
     buffer.seek(0)
     return buffer
 
@@ -174,7 +188,6 @@ def generar_pdf(datos_empresa, datos_factura, datos_cliente, items, totales):
 # ==========================================
 st.title("📄 Generador de Facturas - Aircraft Multiservicios")
 
-# 1. Datos de la empresa (Fijos)
 datos_empresa = {
     "nombre": "AIRCRAFT MULTISERVICIOS",
     "descripcion": "SISTEMAS DE CLIMATIZACIÓN Y REFRIGERACIÓN",
@@ -183,7 +196,6 @@ datos_empresa = {
     "correo": "aircraftmultiservicios30@gmail.com"
 }
 
-# 2. Formulario de Datos Básicos
 with st.container():
     col1, col2 = st.columns(2)
     with col1:
@@ -198,7 +210,6 @@ with st.container():
         factura_fecha = st.date_input("Fecha", datetime.now())
         metodo_pago = st.selectbox("Método de Pago", ["Efectivo", "Transferencia", "Tarjeta"])
 
-# 3. Manejador de Ítems dinámico (Usando 'factura_items' para evitar errores)
 st.subheader("Ítems de la Factura")
 if "factura_items" not in st.session_state:
     st.session_state.factura_items = [{"cantidad": 1, "descripcion": "Mantenimiento preventivo aire acondicionado", "precio_unitario": 150000.0}]
@@ -209,7 +220,6 @@ def agregar_item():
 def eliminar_item(index):
     st.session_state.factura_items.pop(index)
 
-# Mostrar los ítems en pantalla
 for i, item in enumerate(st.session_state.factura_items):
     c1, c2, c3, c4 = st.columns([1, 4, 2, 1])
     item['cantidad'] = c1.number_input("Cant.", min_value=1, value=item['cantidad'], key=f"qty_{i}")
@@ -225,14 +235,12 @@ for i, item in enumerate(st.session_state.factura_items):
 col_btn1, col_btn2 = st.columns([1, 5])
 col_btn1.button("➕ Agregar Ítem", on_click=agregar_item)
 
-# Cálculos de totales
 subtotal = sum(item['total'] for item in st.session_state.factura_items)
-iva = subtotal * 0.19 # 19% IVA
+iva = subtotal * 0.19
 total = subtotal + iva
 
 st.markdown(f"### Subtotal: ${subtotal:,.2f} | IVA (19%): ${iva:,.2f} | **Total: ${total:,.2f}**")
 
-# 4. Generar PDF
 if st.button("📥 Generar y Descargar PDF", type="primary"):
     datos_cliente = {
         "nombre": cliente_nombre,
